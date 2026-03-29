@@ -83,8 +83,8 @@
         const statusEl = document.getElementById('status');
 
         if (window.location.protocol === 'file:') {
-            statusEl.innerText = 'Open this dashboard via http://127.0.0.1:3000';
-            window.location.replace('http://127.0.0.1:3000');
+            statusEl.innerText = 'Open this dashboard via https://remote-agent-node.onrender.com';
+            window.location.replace('https://remote-agent-node.onrender.com');
         }
 
         const socketBaseUrl = `${window.location.protocol}//${window.location.host}`;

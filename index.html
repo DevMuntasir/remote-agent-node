@@ -3,104 +3,334 @@
 
 <head>
     <title>Cloud Control</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
+        :root {
+            --bg: #0f172a;
+            --bg-soft: #111b34;
+            --surface: rgba(255, 255, 255, 0.08);
+            --surface-strong: rgba(255, 255, 255, 0.12);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.24);
+            --success: #22c55e;
+            --danger: #ef4444;
+            --primary: #3b82f6;
+            --neutral: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: sans-serif;
-            text-align: center;
-            background: #f4f4f4;
-            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(1300px 500px at 10% -5%, #223066 0%, transparent 65%),
+                radial-gradient(900px 460px at 95% 2%, #134e4a 0%, transparent 70%),
+                var(--bg);
+            padding: 28px;
+            line-height: 1.4;
+        }
+
+        .dashboard {
+            max-width: 1080px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 18px;
+            align-items: start;
         }
 
         .card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 10px auto;
-            max-width: 500px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.55));
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 20px 50px rgba(2, 6, 23, 0.35);
+        }
+
+        .card h2,
+        .card h3 {
+            margin: 0;
+            font-weight: 650;
+            letter-spacing: 0.2px;
+        }
+
+        .header-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .subtitle {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            text-align: left;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #f59e0b;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+        }
+
+        .status.connected::before {
+            background: var(--success);
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+        }
+
+        .status.error::before {
+            background: var(--danger);
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+
+        .field-label {
+            margin-top: 18px;
+            margin-bottom: 8px;
+            display: block;
+            text-align: left;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
 
         button {
-            padding: 10px 20px;
-            margin: 5px;
+            width: 100%;
+            padding: 11px 14px;
             cursor: pointer;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
             color: white;
+            font-weight: 650;
+            letter-spacing: 0.2px;
+            transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.18s ease;
+            box-shadow: 0 10px 20px rgba(2, 6, 23, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+        }
+
+        button:active {
+            transform: translateY(0);
         }
 
         .btn-rec {
-            background: #28a745;
+            background: linear-gradient(180deg, #22c55e, #16a34a);
         }
 
         .btn-stop {
-            background: #dc3545;
+            background: linear-gradient(180deg, #ef4444, #dc2626);
         }
 
         .btn-cam {
-            background: #007bff;
+            background: linear-gradient(180deg, #3b82f6, #2563eb);
         }
 
         .btn-all {
-            background: #6c757d;
+            background: linear-gradient(180deg, #64748b, #475569);
         }
 
         #agent-select {
             width: 100%;
             padding: 10px;
-            margin: 10px 0;
-            border-radius: 6px;
-            border: 1px solid #ddd;
+            margin: 0;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.5);
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+        }
+
+        #agent-select:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
         #selected-device {
-            margin-top: 8px;
-            font-size: 14px;
-            color: #555;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #cbd5e1;
+            text-align: left;
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            border-radius: 10px;
+            padding: 8px 10px;
+        }
+
+        .action-group {
+            margin-top: 16px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .divider {
+            margin: 16px 0 2px;
+            border: 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .feed-shell {
+            margin-top: 16px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #020617;
+            position: relative;
+            min-height: 230px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feed-shell::after {
+            content: 'Camera stream preview';
+            position: absolute;
+            color: #64748b;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+
+        .feed-shell.has-image::after {
+            display: none;
         }
 
         #camera-feed {
             width: 100%;
-            background: #000;
-            min-height: 200px;
-            margin-top: 10px;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         #video-list {
             text-align: left;
+            margin-top: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        #video-list.empty::before {
+            content: 'No recordings yet. New videos appear here automatically.';
+            display: block;
+            color: var(--muted);
+            padding: 14px;
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            border-radius: 10px;
+            font-size: 14px;
         }
 
         a {
-            color: #007bff;
+            color: #bfdbfe;
             text-decoration: none;
             display: block;
-            margin: 5px 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(96, 165, 250, 0.25);
+            background: rgba(30, 41, 59, 0.45);
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        a:hover {
+            background: rgba(37, 99, 235, 0.15);
+            border-color: rgba(96, 165, 250, 0.5);
+        }
+
+        @media (max-width: 860px) {
+            body {
+                padding: 16px;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="card">
-        <h2>Remote Agent Control</h2>
-        <div id="status">Connecting...</div>
-        <select id="agent-select">
-            <option value="">No active device</option>
-        </select>
-        <div id="selected-device">Selected device: none</div>
-        <button class="btn-rec" onclick="sendControl('admin_start_capture')">START REC</button>
-        <button class="btn-stop" onclick="sendControl('admin_stop_capture')">STOP REC</button>
-        <hr>
-        <button class="btn-cam" onclick="sendControl('admin_start_camera')">CAM ON</button>
-        <button class="btn-stop" onclick="sendControl('admin_stop_camera')">CAM OFF</button>
-        <hr>
-        <button class="btn-all" onclick="send('admin_start_all')">START REC ALL</button>
-        <button class="btn-all" onclick="send('admin_stop_all')">STOP REC ALL</button>
-        <img id="camera-feed" src="">
-    </div>
+    <div class="dashboard">
+        <div class="card">
+            <div class="header-row">
+                <div>
+                    <h2>Remote Control</h2>
+                    <p class="subtitle">Manage connected agents and live camera preview</p>
+                </div>
+                <div id="status" class="status">Connecting...</div>
+            </div>
 
-    <div class="card">
-        <h3>Recent Recordings (Cloudinary)</h3>
-        <div id="video-list"></div>
+            <label class="field-label" for="agent-select">Target Device</label>
+            <select id="agent-select">
+                <option value="">No active device</option>
+            </select>
+            <div id="selected-device">Selected device: none</div>
+
+            <div class="action-group">
+                <div class="action-grid">
+                    <button class="btn-rec" onclick="sendControl('admin_start_capture')">Start Recording</button>
+                    <button class="btn-stop" onclick="sendControl('admin_stop_capture')">Stop Recording</button>
+                </div>
+                <div class="action-grid">
+                    <button class="btn-cam" onclick="sendControl('admin_start_camera')">Camera On</button>
+                    <button class="btn-stop" onclick="sendControl('admin_stop_camera')">Camera Off</button>
+                </div>
+                <hr class="divider">
+                <div class="action-grid">
+                    <button class="btn-all" onclick="send('admin_start_all')">Start All Recordings</button>
+                    <button class="btn-all" onclick="send('admin_stop_all')">Stop All Recordings</button>
+                </div>
+            </div>
+
+            <div id="camera-shell" class="feed-shell">
+                <img id="camera-feed" src="" alt="Live camera stream" />
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="header-row">
+                <h3>Recent Recordings</h3>
+            </div>
+            <p class="subtitle">Latest uploads from connected devices</p>
+            <div id="video-list" class="empty"></div>
+        </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -109,6 +339,7 @@
         const selectedDeviceEl = document.getElementById('selected-device');
         const agentSelect = document.getElementById('agent-select');
         const cameraFeed = document.getElementById('camera-feed');
+        const cameraShell = document.getElementById('camera-shell');
 
         if (window.location.protocol === 'file:') {
             statusEl.innerText = 'Open this dashboard via https://remote-agent-node.onrender.com';
@@ -119,6 +350,25 @@
         const socket = io(socketBaseUrl, { transports: ['websocket', 'polling'] });
         const videoList = document.getElementById('video-list');
         let selectedAgentId = '';
+
+        function setStatus(message, state) {
+            statusEl.classList.remove('connected', 'error');
+            if (state) {
+                statusEl.classList.add(state);
+            }
+            statusEl.innerText = message;
+        }
+
+        function setCameraImage(source) {
+            cameraFeed.src = source;
+            cameraShell.classList.toggle('has-image', Boolean(source));
+        }
+
+        function updateVideoEmptyState() {
+            videoList.classList.toggle('empty', videoList.children.length === 0);
+        }
+
+        updateVideoEmptyState();
 
         function send(event) {
             socket.emit(event);
@@ -166,7 +416,7 @@
             selectedAgentId = agentSelect.value;
             const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
-            cameraFeed.src = '';
+            setCameraImage('');
         });
 
         socket.on('update_agent_list', (agents) => {
@@ -178,23 +428,29 @@
                 return;
             }
 
-            cameraFeed.src = 'data:image/jpeg;base64,' + data.image;
+            setCameraImage('data:image/jpeg;base64,' + data.image);
         });
 
         socket.on('connect', () => {
-            statusEl.innerText = `Connected: ${socket.id}`;
+            setStatus(`Connected: ${socket.id}`, 'connected');
         });
 
         socket.on('connect_error', (err) => {
-            statusEl.innerText = `Connection failed: ${err.message}`;
+            setStatus(`Connection failed: ${err.message}`, 'error');
+        });
+
+        socket.on('disconnect', (reason) => {
+            setStatus(`Disconnected: ${reason}`, 'error');
         });
 
         socket.on('new_video_link', (data) => {
             const link = document.createElement('a');
             link.href = data.url;
             link.target = '_blank';
+            link.rel = 'noopener noreferrer';
             link.innerText = `Video from ${data.machine} - ${new Date().toLocaleTimeString()}`;
             videoList.prepend(link);
+            updateVideoEmptyState();
         });
     </script>
 </body>

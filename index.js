@@ -33,6 +33,10 @@ io.on('connection', (socket) => {
     console.log(`[socket] connected: ${socket.id}`);
     socket.emit('update_agent_list', Object.values(agents));
 
+    const emitAgentList = () => {
+        io.emit('update_agent_list', Object.values(agents));
+    };
+
     const emitControl = (eventName, payload = {}) => {
         const targetId = payload?.targetId;
 
@@ -45,9 +49,35 @@ io.on('connection', (socket) => {
     };
 
     socket.on('register_node', (data) => {
-        agents[socket.id] = { machine: data.machine, id: socket.id };
+        agents[socket.id] = {
+            machine: data.machine,
+            id: socket.id,
+            recording: false,
+            cameraOn: false
+        };
         console.log(`[agent] registered: ${data.machine} (${socket.id})`);
-        io.emit('update_agent_list', Object.values(agents));
+        emitAgentList();
+    });
+
+    socket.on('agent_state_update', (data = {}) => {
+        const previous = agents[socket.id] || { id: socket.id, machine: data.machine || 'Unknown-PC' };
+
+        agents[socket.id] = {
+            ...previous,
+            machine: data.machine || previous.machine,
+            recording: Boolean(data.recording),
+            cameraOn: Boolean(data.cameraOn),
+            lastStateAt: Date.now()
+        };
+
+        emitAgentList();
+        io.emit('ui_agent_state', {
+            agentId: socket.id,
+            machine: agents[socket.id].machine,
+            recording: agents[socket.id].recording,
+            cameraOn: agents[socket.id].cameraOn,
+            source: data.source || 'agent'
+        });
     });
 
     // Recording Controls
@@ -83,7 +113,14 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log(`[socket] disconnected: ${socket.id}`);
         delete agents[socket.id];
-        io.emit('update_agent_list', Object.values(agents));
+        emitAgentList();
+        io.emit('ui_agent_state', {
+            agentId: socket.id,
+            online: false,
+            recording: false,
+            cameraOn: false,
+            source: 'disconnect'
+        });
     });
 });
 

@@ -142,6 +142,13 @@
             transform: translateY(0);
         }
 
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            filter: grayscale(0.2);
+        }
+
         .btn-rec {
             background: linear-gradient(180deg, #22c55e, #16a34a);
         }
@@ -183,6 +190,68 @@
             border: 1px dashed rgba(148, 163, 184, 0.35);
             border-radius: 10px;
             padding: 8px 10px;
+        }
+
+        .runtime-status {
+            margin-top: 10px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .status-chip-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .status-chip {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.02em;
+            background: rgba(15, 23, 42, 0.4);
+            color: #cbd5e1;
+        }
+
+        .status-chip.on {
+            border-color: rgba(34, 197, 94, 0.45);
+            background: rgba(34, 197, 94, 0.16);
+            color: #bbf7d0;
+        }
+
+        .status-chip.off {
+            border-color: rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.14);
+            color: #fecaca;
+        }
+
+        .status-chip.unknown {
+            border-color: rgba(148, 163, 184, 0.35);
+            background: rgba(100, 116, 139, 0.15);
+            color: #cbd5e1;
+        }
+
+        .control-feedback {
+            margin-top: 2px;
+            margin-bottom: 2px;
+            font-size: 13px;
+            text-align: left;
+            min-height: 18px;
+        }
+
+        .control-feedback.pending {
+            color: #facc15;
+        }
+
+        .control-feedback.ok {
+            color: #86efac;
+        }
+
+        .control-feedback.warn {
+            color: #fca5a5;
         }
 
         .action-group {
@@ -302,15 +371,22 @@
                 <option value="">No active device</option>
             </select>
             <div id="selected-device">Selected device: none</div>
+            <div class="runtime-status">
+                <div class="status-chip-row">
+                    <div id="recording-chip" class="status-chip unknown">Recording: Unknown</div>
+                    <div id="camera-chip" class="status-chip unknown">Camera: Unknown</div>
+                </div>
+                <div id="control-feedback" class="control-feedback"></div>
+            </div>
 
             <div class="action-group">
                 <div class="action-grid">
-                    <button class="btn-rec" onclick="sendControl('admin_start_capture')">Start Recording</button>
-                    <button class="btn-stop" onclick="sendControl('admin_stop_capture')">Stop Recording</button>
+                    <button id="btn-start-rec" class="btn-rec" onclick="sendControl('admin_start_capture')">Start Recording</button>
+                    <button id="btn-stop-rec" class="btn-stop" onclick="sendControl('admin_stop_capture')">Stop Recording</button>
                 </div>
                 <div class="action-grid">
-                    <button class="btn-cam" onclick="sendControl('admin_start_camera')">Camera On</button>
-                    <button class="btn-stop" onclick="sendControl('admin_stop_camera')">Camera Off</button>
+                    <button id="btn-start-cam" class="btn-cam" onclick="sendControl('admin_start_camera')">Camera On</button>
+                    <button id="btn-stop-cam" class="btn-stop" onclick="sendControl('admin_stop_camera')">Camera Off</button>
                 </div>
                 <hr class="divider">
                 <div class="action-grid">
@@ -340,6 +416,13 @@
         const agentSelect = document.getElementById('agent-select');
         const cameraFeed = document.getElementById('camera-feed');
         const cameraShell = document.getElementById('camera-shell');
+        const recordingChip = document.getElementById('recording-chip');
+        const cameraChip = document.getElementById('camera-chip');
+        const controlFeedbackEl = document.getElementById('control-feedback');
+        const startRecBtn = document.getElementById('btn-start-rec');
+        const stopRecBtn = document.getElementById('btn-stop-rec');
+        const startCamBtn = document.getElementById('btn-start-cam');
+        const stopCamBtn = document.getElementById('btn-stop-cam');
 
         if (window.location.protocol === 'file:') {
             statusEl.innerText = 'Open this dashboard via https://remote-agent-node.onrender.com';
@@ -350,6 +433,7 @@
         const socket = io(socketBaseUrl, { transports: ['websocket', 'polling'] });
         const videoList = document.getElementById('video-list');
         let selectedAgentId = '';
+        const agentRuntimeState = {};
 
         function setStatus(message, state) {
             statusEl.classList.remove('connected', 'error');
@@ -368,7 +452,60 @@
             videoList.classList.toggle('empty', videoList.children.length === 0);
         }
 
+        function setControlFeedback(message, type = '') {
+            controlFeedbackEl.className = `control-feedback ${type}`.trim();
+            controlFeedbackEl.innerText = message;
+        }
+
+        function setChipState(chip, label, state) {
+            chip.classList.remove('on', 'off', 'unknown');
+
+            if (state === true) {
+                chip.classList.add('on');
+                chip.innerText = `${label}: ON`;
+                return;
+            }
+
+            if (state === false) {
+                chip.classList.add('off');
+                chip.innerText = `${label}: OFF`;
+                return;
+            }
+
+            chip.classList.add('unknown');
+            chip.innerText = `${label}: Unknown`;
+        }
+
+        function updateControlButtons(state, online) {
+            const hasDevice = Boolean(selectedAgentId);
+            const canControl = hasDevice && online;
+            const isRecording = Boolean(state?.recording);
+            const isCameraOn = Boolean(state?.cameraOn);
+
+            startRecBtn.disabled = !canControl || isRecording;
+            stopRecBtn.disabled = !canControl || !isRecording;
+            startCamBtn.disabled = !canControl || isCameraOn;
+            stopCamBtn.disabled = !canControl || !isCameraOn;
+        }
+
+        function updateRuntimeStateUI() {
+            if (!selectedAgentId) {
+                setChipState(recordingChip, 'Recording', null);
+                setChipState(cameraChip, 'Camera', null);
+                updateControlButtons(null, false);
+                return;
+            }
+
+            const state = agentRuntimeState[selectedAgentId];
+            const isOnline = Boolean(state?.online);
+
+            setChipState(recordingChip, 'Recording', isOnline ? state?.recording : null);
+            setChipState(cameraChip, 'Camera', isOnline ? state?.cameraOn : null);
+            updateControlButtons(state, isOnline);
+        }
+
         updateVideoEmptyState();
+        updateRuntimeStateUI();
 
         function send(event) {
             socket.emit(event);
@@ -380,10 +517,33 @@
                 return;
             }
 
+            if (!agentRuntimeState[selectedAgentId]?.online) {
+                alert('Selected device is offline.');
+                return;
+            }
+
             socket.emit(event, { targetId: selectedAgentId });
+            setControlFeedback('Command sent. Waiting for device confirmation...', 'pending');
         }
 
         function renderAgents(agents) {
+            const activeIds = new Set(agents.map((agent) => agent.id));
+
+            Object.keys(agentRuntimeState).forEach((agentId) => {
+                if (!activeIds.has(agentId)) {
+                    delete agentRuntimeState[agentId];
+                }
+            });
+
+            agents.forEach((agent) => {
+                agentRuntimeState[agent.id] = {
+                    recording: Boolean(agent.recording),
+                    cameraOn: Boolean(agent.cameraOn),
+                    online: true,
+                    updatedAt: Date.now()
+                };
+            });
+
             const hasSelected = agents.some((agent) => agent.id === selectedAgentId);
             if (!hasSelected) {
                 selectedAgentId = agents[0]?.id || '';
@@ -397,19 +557,25 @@
                 option.textContent = 'No active device';
                 agentSelect.appendChild(option);
                 selectedDeviceEl.innerText = 'Selected device: none';
+                setControlFeedback('No active device connected.', 'warn');
+                setCameraImage('');
+                updateRuntimeStateUI();
                 return;
             }
 
             agents.forEach((agent) => {
                 const option = document.createElement('option');
                 option.value = agent.id;
-                option.textContent = `${agent.machine} (${agent.id.slice(0, 6)})`;
+                const recordingText = agent.recording ? 'REC ON' : 'REC OFF';
+                const cameraText = agent.cameraOn ? 'CAM ON' : 'CAM OFF';
+                option.textContent = `${agent.machine} (${agent.id.slice(0, 6)}) • ${recordingText} • ${cameraText}`;
                 agentSelect.appendChild(option);
             });
 
             agentSelect.value = selectedAgentId;
             const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
+            updateRuntimeStateUI();
         }
 
         agentSelect.addEventListener('change', () => {
@@ -417,6 +583,8 @@
             const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
             setCameraImage('');
+            setControlFeedback('', '');
+            updateRuntimeStateUI();
         });
 
         socket.on('update_agent_list', (agents) => {
@@ -431,6 +599,31 @@
             setCameraImage('data:image/jpeg;base64,' + data.image);
         });
 
+        socket.on('ui_agent_state', (data) => {
+            if (!data?.agentId) {
+                return;
+            }
+
+            agentRuntimeState[data.agentId] = {
+                recording: Boolean(data.recording),
+                cameraOn: Boolean(data.cameraOn),
+                online: data.online !== false,
+                updatedAt: Date.now()
+            };
+
+            if (data.online === false && selectedAgentId === data.agentId) {
+                setCameraImage('');
+            }
+
+            if (selectedAgentId === data.agentId) {
+                updateRuntimeStateUI();
+                const recordingText = data.recording ? 'Recording ON' : 'Recording OFF';
+                const cameraText = data.cameraOn ? 'Camera ON' : 'Camera OFF';
+                const feedbackType = data.online === false ? 'warn' : 'ok';
+                setControlFeedback(`${recordingText} • ${cameraText}`, feedbackType);
+            }
+        });
+
         socket.on('connect', () => {
             setStatus(`Connected: ${socket.id}`, 'connected');
         });
@@ -441,6 +634,11 @@
 
         socket.on('disconnect', (reason) => {
             setStatus(`Disconnected: ${reason}`, 'error');
+            Object.keys(agentRuntimeState).forEach((agentId) => {
+                agentRuntimeState[agentId].online = false;
+            });
+            updateRuntimeStateUI();
+            setControlFeedback('Connection lost. Waiting to reconnect...', 'warn');
         });
 
         socket.on('new_video_link', (data) => {

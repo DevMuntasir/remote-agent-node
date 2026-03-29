@@ -41,6 +41,24 @@
             background: #007bff;
         }
 
+        .btn-all {
+            background: #6c757d;
+        }
+
+        #agent-select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        #selected-device {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #555;
+        }
+
         #camera-feed {
             width: 100%;
             background: #000;
@@ -65,11 +83,18 @@
     <div class="card">
         <h2>Remote Agent Control</h2>
         <div id="status">Connecting...</div>
-        <button class="btn-rec" onclick="send('admin_start_all')">START REC</button>
-        <button class="btn-stop" onclick="send('admin_stop_all')">STOP REC</button>
+        <select id="agent-select">
+            <option value="">No active device</option>
+        </select>
+        <div id="selected-device">Selected device: none</div>
+        <button class="btn-rec" onclick="sendControl('admin_start_capture')">START REC</button>
+        <button class="btn-stop" onclick="sendControl('admin_stop_capture')">STOP REC</button>
         <hr>
-        <button class="btn-cam" onclick="send('admin_start_camera')">CAM ON</button>
-        <button class="btn-stop" onclick="send('admin_stop_camera')">CAM OFF</button>
+        <button class="btn-cam" onclick="sendControl('admin_start_camera')">CAM ON</button>
+        <button class="btn-stop" onclick="sendControl('admin_stop_camera')">CAM OFF</button>
+        <hr>
+        <button class="btn-all" onclick="send('admin_start_all')">START REC ALL</button>
+        <button class="btn-all" onclick="send('admin_stop_all')">STOP REC ALL</button>
         <img id="camera-feed" src="">
     </div>
 
@@ -81,6 +106,9 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         const statusEl = document.getElementById('status');
+        const selectedDeviceEl = document.getElementById('selected-device');
+        const agentSelect = document.getElementById('agent-select');
+        const cameraFeed = document.getElementById('camera-feed');
 
         if (window.location.protocol === 'file:') {
             statusEl.innerText = 'Open this dashboard via https://remote-agent-node.onrender.com';
@@ -90,11 +118,67 @@
         const socketBaseUrl = `${window.location.protocol}//${window.location.host}`;
         const socket = io(socketBaseUrl, { transports: ['websocket', 'polling'] });
         const videoList = document.getElementById('video-list');
+        let selectedAgentId = '';
 
-        function send(event) { socket.emit(event); }
+        function send(event) {
+            socket.emit(event);
+        }
+
+        function sendControl(event) {
+            if (!selectedAgentId) {
+                alert('Please select a target device first.');
+                return;
+            }
+
+            socket.emit(event, { targetId: selectedAgentId });
+        }
+
+        function renderAgents(agents) {
+            const hasSelected = agents.some((agent) => agent.id === selectedAgentId);
+            if (!hasSelected) {
+                selectedAgentId = agents[0]?.id || '';
+            }
+
+            agentSelect.innerHTML = '';
+
+            if (agents.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No active device';
+                agentSelect.appendChild(option);
+                selectedDeviceEl.innerText = 'Selected device: none';
+                return;
+            }
+
+            agents.forEach((agent) => {
+                const option = document.createElement('option');
+                option.value = agent.id;
+                option.textContent = `${agent.machine} (${agent.id.slice(0, 6)})`;
+                agentSelect.appendChild(option);
+            });
+
+            agentSelect.value = selectedAgentId;
+            const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
+            selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
+        }
+
+        agentSelect.addEventListener('change', () => {
+            selectedAgentId = agentSelect.value;
+            const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
+            selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
+            cameraFeed.src = '';
+        });
+
+        socket.on('update_agent_list', (agents) => {
+            renderAgents(agents);
+        });
 
         socket.on('ui_camera_display', (data) => {
-            document.getElementById('camera-feed').src = "data:image/jpeg;base64," + data.image;
+            if (selectedAgentId && data.agentId !== selectedAgentId) {
+                return;
+            }
+
+            cameraFeed.src = 'data:image/jpeg;base64,' + data.image;
         });
 
         socket.on('connect', () => {
@@ -108,8 +192,8 @@
         socket.on('new_video_link', (data) => {
             const link = document.createElement('a');
             link.href = data.url;
-            link.target = "_blank";
-            link.innerText = `🎥 Video from ${data.machine} - ${new Date().toLocaleTimeString()}`;
+            link.target = '_blank';
+            link.innerText = `Video from ${data.machine} - ${new Date().toLocaleTimeString()}`;
             videoList.prepend(link);
         });
     </script>

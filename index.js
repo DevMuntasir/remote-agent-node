@@ -3,10 +3,20 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 
+const PORT = Number(process.env.PORT) || 3000;
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || '*';
+
+const allowedOrigins = CLIENT_ORIGIN === '*'
+    ? '*'
+    : CLIENT_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: {
+        origin: allowedOrigins,
+        methods: ['GET', 'POST']
+    }
 });
 
 let agents = {};
@@ -41,6 +51,10 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('ui_camera_display', data);
     });
 
+    socket.on('video_upload_complete', (data) => {
+        io.emit('new_video_link', data);
+    });
+
     socket.on('disconnect', () => {
         console.log(`[socket] disconnected: ${socket.id}`);
         delete agents[socket.id];
@@ -48,4 +62,7 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(3000, '0.0.0.0', () => console.log('Server running on 0.0.0.0:3000'));
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on 0.0.0.0:${PORT}`);
+    console.log(`Allowed CLIENT_ORIGIN: ${CLIENT_ORIGIN}`);
+});

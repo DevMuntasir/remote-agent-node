@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: signal-server
+    env: node
+    rootDir: signal-server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: CLIENT_ORIGIN
+        value: "*"

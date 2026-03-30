@@ -339,6 +339,55 @@
             border-color: rgba(96, 165, 250, 0.5);
         }
 
+        .hidden {
+            display: none !important;
+        }
+
+        .auth-shell {
+            max-width: 460px;
+            margin: 0 auto 18px;
+        }
+
+        .auth-form {
+            display: grid;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .auth-input {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.7);
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .auth-input:focus {
+            border-color: rgba(59, 130, 246, 0.8);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .auth-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .auth-user {
+            color: var(--muted);
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        #btn-logout {
+            width: auto;
+            padding: 8px 12px;
+        }
+
         @media (max-width: 860px) {
             body {
                 padding: 16px;
@@ -356,14 +405,39 @@
 </head>
 
 <body>
-    <div class="dashboard">
+    <div id="auth-shell" class="auth-shell">
+        <div class="card">
+            <h2>Admin Login</h2>
+            <p class="subtitle">Only authorized users can access this dashboard.</p>
+
+            <form id="login-form" class="auth-form">
+                <label class="field-label" for="login-email">Email</label>
+                <input id="login-email" class="auth-input" type="email" required autocomplete="username" placeholder="admin@example.com" />
+
+                <label class="field-label" for="login-password">Password</label>
+                <input id="login-password" class="auth-input" type="password" required autocomplete="current-password" placeholder="Enter password" />
+
+                <button id="btn-login" class="btn-cam" type="submit">Login</button>
+            </form>
+
+            <div id="auth-feedback" class="control-feedback"></div>
+        </div>
+    </div>
+
+    <div id="dashboard" class="dashboard hidden">
         <div class="card">
             <div class="header-row">
                 <div>
                     <h2>Remote Control</h2>
                     <p class="subtitle">Manage connected agents and live camera preview</p>
                 </div>
-                <div id="status" class="status">Connecting...</div>
+                <div>
+                    <div id="status" class="status">Authenticating...</div>
+                    <div class="auth-row">
+                        <div id="user-email" class="auth-user"></div>
+                        <button id="btn-logout" class="btn-stop" type="button">Logout</button>
+                    </div>
+                </div>
             </div>
 
             <label class="field-label" for="agent-select">Target Device</label>
@@ -410,6 +484,8 @@
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
     <script>
         const statusEl = document.getElementById('status');
         const selectedDeviceEl = document.getElementById('selected-device');
@@ -430,7 +506,7 @@
         }
 
         const socketBaseUrl = `${window.location.protocol}//${window.location.host}`;
-        const socket = io(socketBaseUrl, { transports: ['websocket', 'polling'] });
+        const socket = io(socketBaseUrl, { transports: ['websocket', 'polling'], autoConnect: false });
         const videoList = document.getElementById('video-list');
         let selectedAgentId = '';
         const agentRuntimeState = {};
@@ -508,10 +584,20 @@
         updateRuntimeStateUI();
 
         function send(event) {
+            if (!socket.connected) {
+                setControlFeedback('Please login first to send controls.', 'warn');
+                return;
+            }
+
             socket.emit(event);
         }
 
         function sendControl(event) {
+            if (!socket.connected) {
+                setControlFeedback('Please login first to send controls.', 'warn');
+                return;
+            }
+
             if (!selectedAgentId) {
                 alert('Please select a target device first.');
                 return;
@@ -650,6 +736,114 @@
             videoList.prepend(link);
             updateVideoEmptyState();
         });
+    </script>
+    <script>
+        const authShellEl = document.getElementById('auth-shell');
+        const dashboardEl = document.getElementById('dashboard');
+        const loginFormEl = document.getElementById('login-form');
+        const loginEmailEl = document.getElementById('login-email');
+        const loginPasswordEl = document.getElementById('login-password');
+        const loginButtonEl = document.getElementById('btn-login');
+        const logoutButtonEl = document.getElementById('btn-logout');
+        const authFeedbackEl = document.getElementById('auth-feedback');
+        const userEmailEl = document.getElementById('user-email');
+
+        function setAuthFeedback(message, type = '') {
+            authFeedbackEl.className = `control-feedback ${type}`.trim();
+            authFeedbackEl.innerText = message;
+        }
+
+        function setAuthUI(loggedIn, email = '') {
+            authShellEl.classList.toggle('hidden', loggedIn);
+            dashboardEl.classList.toggle('hidden', !loggedIn);
+            userEmailEl.innerText = email;
+        }
+
+        function connectAuthenticatedSocket(idToken) {
+            socket.auth = {
+                token: idToken,
+                clientType: 'dashboard'
+            };
+            socket.connect();
+        }
+
+        async function initDashboardAuth() {
+            try {
+                const configResponse = await fetch('/firebase-config');
+                if (!configResponse.ok) {
+                    throw new Error('Firebase config missing on server.');
+                }
+
+                const firebaseConfig = await configResponse.json();
+                firebase.initializeApp(firebaseConfig);
+                const auth = firebase.auth();
+
+                loginFormEl.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const email = loginEmailEl.value.trim();
+                    const password = loginPasswordEl.value;
+
+                    if (!email || !password) {
+                        setAuthFeedback('Email and password are required.', 'warn');
+                        return;
+                    }
+
+                    loginButtonEl.disabled = true;
+                    setAuthFeedback('Signing in...', 'pending');
+
+                    try {
+                        await auth.signInWithEmailAndPassword(email, password);
+                        loginPasswordEl.value = '';
+                    } catch (error) {
+                        setAuthFeedback(error.message || 'Login failed.', 'warn');
+                    } finally {
+                        loginButtonEl.disabled = false;
+                    }
+                });
+
+                logoutButtonEl.addEventListener('click', async () => {
+                    try {
+                        await auth.signOut();
+                    } catch (error) {
+                        setAuthFeedback(error.message || 'Logout failed.', 'warn');
+                    }
+                });
+
+                auth.onAuthStateChanged(async (user) => {
+                    socket.disconnect();
+                    socket.auth = {};
+
+                    if (!user) {
+                        setAuthUI(false);
+                        renderAgents([]);
+                        videoList.innerHTML = '';
+                        updateVideoEmptyState();
+                        setAuthFeedback('Please login with Firebase email/password.', 'pending');
+                        setStatus('Login required', 'error');
+                        return;
+                    }
+
+                    setAuthUI(true, user.email || '');
+                    setStatus('Authenticating...', '');
+
+                    try {
+                        const idToken = await user.getIdToken(true);
+                        connectAuthenticatedSocket(idToken);
+                        setAuthFeedback('', '');
+                    } catch (error) {
+                        setAuthUI(false);
+                        setAuthFeedback(error.message || 'Could not get auth token.', 'warn');
+                        setStatus('Authentication token failed', 'error');
+                    }
+                });
+            } catch (error) {
+                setAuthFeedback(error.message || 'Authentication setup failed.', 'warn');
+                setStatus('Authentication setup failed', 'error');
+                loginButtonEl.disabled = true;
+            }
+        }
+
+        initDashboardAuth();
     </script>
 </body>
 

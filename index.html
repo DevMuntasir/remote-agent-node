@@ -748,6 +748,29 @@
         const authFeedbackEl = document.getElementById('auth-feedback');
         const userEmailEl = document.getElementById('user-email');
 
+        const authShellMarker = document.createComment('auth-shell-marker');
+        authShellEl.parentNode.insertBefore(authShellMarker, authShellEl);
+
+        const dashboardMarker = document.createComment('dashboard-marker');
+        dashboardEl.parentNode.insertBefore(dashboardMarker, dashboardEl);
+
+        authShellEl.classList.remove('hidden');
+        dashboardEl.classList.remove('hidden');
+
+        function mountAfterMarker(marker, node) {
+            if (!node.isConnected) {
+                marker.parentNode.insertBefore(node, marker.nextSibling);
+            }
+        }
+
+        function unmountNode(node) {
+            if (node.isConnected) {
+                node.remove();
+            }
+        }
+
+        unmountNode(dashboardEl);
+
         function normalizeFirebaseAuthError(error, fallbackMessage = 'Something went wrong. Please try again.') {
             const code = typeof error?.code === 'string' ? error.code : '';
             const normalizedCode = code.replace(/^auth\//, '');
@@ -785,9 +808,16 @@
         }
 
         function setAuthUI(loggedIn, email = '') {
-            authShellEl.classList.toggle('hidden', loggedIn);
-            dashboardEl.classList.toggle('hidden', !loggedIn);
-            userEmailEl.innerText = email;
+            if (loggedIn) {
+                unmountNode(authShellEl);
+                mountAfterMarker(dashboardMarker, dashboardEl);
+                userEmailEl.innerText = email;
+                return;
+            }
+
+            unmountNode(dashboardEl);
+            mountAfterMarker(authShellMarker, authShellEl);
+            userEmailEl.innerText = '';
         }
 
         function connectAuthenticatedSocket(idToken) {

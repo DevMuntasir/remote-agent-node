@@ -748,6 +748,37 @@
         const authFeedbackEl = document.getElementById('auth-feedback');
         const userEmailEl = document.getElementById('user-email');
 
+        function normalizeFirebaseAuthError(error, fallbackMessage = 'Something went wrong. Please try again.') {
+            const code = typeof error?.code === 'string' ? error.code : '';
+            const normalizedCode = code.replace(/^auth\//, '');
+
+            const messagesByCode = {
+                'invalid-credential': 'Invalid email or password.',
+                'wrong-password': 'Invalid email or password.',
+                'user-not-found': 'Invalid email or password.',
+                'invalid-email': 'Please enter a valid email address.',
+                'user-disabled': 'This account has been disabled. Contact support.',
+                'too-many-requests': 'Too many failed attempts. Please try again later.',
+                'network-request-failed': 'Network error. Please check your connection and try again.'
+            };
+
+            if (normalizedCode && messagesByCode[normalizedCode]) {
+                return messagesByCode[normalizedCode];
+            }
+
+            const rawMessage = typeof error?.message === 'string' ? error.message : '';
+            if (!rawMessage) {
+                return fallbackMessage;
+            }
+
+            const cleanedMessage = rawMessage
+                .replace(/^Firebase:\s*/i, '')
+                .replace(/\s*\(auth\/[\w-]+\)\.?$/i, '')
+                .trim();
+
+            return cleanedMessage || fallbackMessage;
+        }
+
         function setAuthFeedback(message, type = '') {
             authFeedbackEl.className = `control-feedback ${type}`.trim();
             authFeedbackEl.innerText = message;
@@ -795,7 +826,7 @@
                         await auth.signInWithEmailAndPassword(email, password);
                         loginPasswordEl.value = '';
                     } catch (error) {
-                        setAuthFeedback(error.message || 'Login failed.', 'warn');
+                        setAuthFeedback(normalizeFirebaseAuthError(error, 'Login failed. Please try again.'), 'warn');
                     } finally {
                         loginButtonEl.disabled = false;
                     }
@@ -805,7 +836,7 @@
                     try {
                         await auth.signOut();
                     } catch (error) {
-                        setAuthFeedback(error.message || 'Logout failed.', 'warn');
+                        setAuthFeedback(normalizeFirebaseAuthError(error, 'Logout failed. Please try again.'), 'warn');
                     }
                 });
 
@@ -832,12 +863,12 @@
                         setAuthFeedback('', '');
                     } catch (error) {
                         setAuthUI(false);
-                        setAuthFeedback(error.message || 'Could not get auth token.', 'warn');
+                        setAuthFeedback(normalizeFirebaseAuthError(error, 'Could not get auth token.'), 'warn');
                         setStatus('Authentication token failed', 'error');
                     }
                 });
             } catch (error) {
-                setAuthFeedback(error.message || 'Authentication setup failed.', 'warn');
+                setAuthFeedback(normalizeFirebaseAuthError(error, 'Authentication setup failed.'), 'warn');
                 setStatus('Authentication setup failed', 'error');
                 loginButtonEl.disabled = true;
             }

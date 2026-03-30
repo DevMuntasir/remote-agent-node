@@ -388,6 +388,64 @@
             padding: 8px 12px;
         }
 
+        #btn-refresh-visitors {
+            width: auto;
+            padding: 8px 12px;
+        }
+
+        .ip-list {
+            margin-top: 10px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .ip-list.empty::before {
+            content: attr(data-empty-message);
+            display: block;
+            color: var(--muted);
+            padding: 10px;
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            border-radius: 10px;
+            font-size: 13px;
+        }
+
+        .ip-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.45);
+        }
+
+        .ip-main {
+            font-size: 13px;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .ip-meta {
+            margin-top: 2px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .ip-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .btn-inline {
+            width: auto;
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            box-shadow: none;
+        }
+
         @media (max-width: 860px) {
             body {
                 padding: 16px;
@@ -399,6 +457,19 @@
 
             .action-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .ip-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .ip-actions {
+                width: 100%;
+            }
+
+            .ip-actions .btn-inline {
+                width: 100%;
             }
         }
     </style>
@@ -480,6 +551,32 @@
             </div>
             <p class="subtitle">Latest uploads from connected devices</p>
             <div id="video-list" class="empty"></div>
+
+            <hr class="divider">
+            <div class="header-row">
+                <h3>Visitor IP Security</h3>
+                <button id="btn-refresh-visitors" class="btn-all" type="button">Refresh</button>
+            </div>
+            <p class="subtitle">Track visitor IPs and block/unblock instantly.</p>
+
+            <label class="field-label" for="visitor-ip">IP Address</label>
+            <input id="visitor-ip" class="auth-input" type="text" placeholder="e.g. 1.2.3.4" />
+
+            <label class="field-label" for="visitor-reason">Block Reason (optional)</label>
+            <input id="visitor-reason" class="auth-input" type="text" placeholder="spam, abuse, bot traffic" />
+
+            <div class="action-grid" style="margin-top:10px;">
+                <button id="btn-block-ip" class="btn-stop" type="button">Block IP</button>
+                <button id="btn-unblock-ip" class="btn-cam" type="button">Unblock IP</button>
+            </div>
+
+            <div id="visitor-feedback" class="control-feedback"></div>
+
+            <p class="subtitle" style="margin-top:12px;">Blocked IPs</p>
+            <div id="blocked-ip-list" class="ip-list empty" data-empty-message="No blocked IP yet."></div>
+
+            <p class="subtitle" style="margin-top:12px;">Recent Visitors</p>
+            <div id="visitor-list" class="ip-list empty" data-empty-message="No visitors logged yet."></div>
         </div>
     </div>
 
@@ -499,6 +596,14 @@
         const stopRecBtn = document.getElementById('btn-stop-rec');
         const startCamBtn = document.getElementById('btn-start-cam');
         const stopCamBtn = document.getElementById('btn-stop-cam');
+        const visitorIpInputEl = document.getElementById('visitor-ip');
+        const visitorReasonInputEl = document.getElementById('visitor-reason');
+        const visitorFeedbackEl = document.getElementById('visitor-feedback');
+        const blockIpButtonEl = document.getElementById('btn-block-ip');
+        const unblockIpButtonEl = document.getElementById('btn-unblock-ip');
+        const refreshVisitorsButtonEl = document.getElementById('btn-refresh-visitors');
+        const blockedIpListEl = document.getElementById('blocked-ip-list');
+        const visitorListEl = document.getElementById('visitor-list');
 
         if (window.location.protocol === 'file:') {
             statusEl.innerText = 'Open this dashboard via https://remote-agent-node.onrender.com';
@@ -509,6 +614,7 @@
         const socket = io(socketBaseUrl, { transports: ['websocket', 'polling'], autoConnect: false });
         const videoList = document.getElementById('video-list');
         let selectedAgentId = '';
+        let adminIdToken = '';
         const agentRuntimeState = {};
 
         function setStatus(message, state) {
@@ -580,8 +686,310 @@
             updateControlButtons(state, isOnline);
         }
 
+        function setVisitorFeedback(message, type = '') {
+            visitorFeedbackEl.className = `control-feedback ${type}`.trim();
+            visitorFeedbackEl.innerText = message;
+        }
+
+        function normalizeInputIp(value = '') {
+            return String(value || '').trim().replace(/^::ffff:/, '');
+        }
+
+        function safeDecode(value = '') {
+            try {
+                return decodeURIComponent(value);
+            } catch (error) {
+                return value;
+            }
+        }
+
+        function toDate(value) {
+            if (!value) {
+                return null;
+            }
+
+            if (value instanceof Date) {
+                return value;
+            }
+
+            if (typeof value === 'string' || typeof value === 'number') {
+                const date = new Date(value);
+                return Number.isNaN(date.getTime()) ? null : date;
+            }
+
+            const seconds = value.seconds ?? value._seconds;
+            if (typeof seconds === 'number') {
+                return new Date(seconds * 1000);
+            }
+
+            return null;
+        }
+
+        function formatDateTime(value) {
+            const date = toDate(value);
+            return date ? date.toLocaleString() : 'Unknown';
+        }
+
+        function setIpControlsEnabled(enabled) {
+            visitorIpInputEl.disabled = !enabled;
+            visitorReasonInputEl.disabled = !enabled;
+            blockIpButtonEl.disabled = !enabled;
+            unblockIpButtonEl.disabled = !enabled;
+            refreshVisitorsButtonEl.disabled = !enabled;
+        }
+
+        async function ensureAdminIdToken(forceRefresh = false) {
+            if (window.firebase?.auth && window.firebase?.apps?.length) {
+                const currentUser = window.firebase.auth().currentUser;
+                if (currentUser) {
+                    adminIdToken = await currentUser.getIdToken(forceRefresh);
+                }
+            }
+
+            return adminIdToken;
+        }
+
+        async function adminApiRequest(endpoint, options = {}) {
+            let token = await ensureAdminIdToken(false);
+
+            if (!token) {
+                throw new Error('Please login first.');
+            }
+
+            const headers = {
+                ...(options.headers || {}),
+                Authorization: `Bearer ${token}`
+            };
+
+            if (options.body && !headers['Content-Type']) {
+                headers['Content-Type'] = 'application/json';
+            }
+
+            let response = await fetch(endpoint, {
+                method: options.method || 'GET',
+                headers,
+                body: options.body
+            });
+
+            if (response.status === 401) {
+                token = await ensureAdminIdToken(true);
+                if (token) {
+                    response = await fetch(endpoint, {
+                        method: options.method || 'GET',
+                        headers: {
+                            ...headers,
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: options.body
+                    });
+                }
+            }
+
+            const responseText = await response.text();
+            let responseData = {};
+
+            if (responseText) {
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch (error) {
+                    responseData = { error: responseText };
+                }
+            }
+
+            if (!response.ok) {
+                throw new Error(responseData.error || `Request failed (${response.status}).`);
+            }
+
+            return responseData;
+        }
+
+        function renderBlockedIps(blockedIps = []) {
+            blockedIpListEl.innerHTML = '';
+
+            if (!blockedIps.length) {
+                blockedIpListEl.classList.add('empty');
+                blockedIpListEl.dataset.emptyMessage = 'No blocked IP yet.';
+                return;
+            }
+
+            blockedIpListEl.classList.remove('empty');
+
+            blockedIps.forEach((item) => {
+                const ip = normalizeInputIp(item.ip || safeDecode(item.id || ''));
+                if (!ip) {
+                    return;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'ip-row';
+
+                const info = document.createElement('div');
+                info.innerHTML = `
+                    <div class="ip-main">${ip}</div>
+                    <div class="ip-meta">Blocked at: ${formatDateTime(item.blockedAt)}${item.blockReason ? ` - ${item.blockReason}` : ''}</div>
+                `;
+
+                const actions = document.createElement('div');
+                actions.className = 'ip-actions';
+
+                const quickUnblockButton = document.createElement('button');
+                quickUnblockButton.type = 'button';
+                quickUnblockButton.className = 'btn-cam btn-inline';
+                quickUnblockButton.innerText = 'Unblock';
+                quickUnblockButton.addEventListener('click', () => unblockIp(ip));
+
+                actions.appendChild(quickUnblockButton);
+                row.appendChild(info);
+                row.appendChild(actions);
+                blockedIpListEl.appendChild(row);
+            });
+        }
+
+        function renderVisitors(visitors = []) {
+            visitorListEl.innerHTML = '';
+
+            if (!visitors.length) {
+                visitorListEl.classList.add('empty');
+                visitorListEl.dataset.emptyMessage = 'No visitors logged yet.';
+                return;
+            }
+
+            visitorListEl.classList.remove('empty');
+
+            visitors.forEach((item) => {
+                const ip = normalizeInputIp(item.ip || safeDecode(item.id || ''));
+                if (!ip) {
+                    return;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'ip-row';
+
+                const info = document.createElement('div');
+                info.innerHTML = `
+                    <div class="ip-main">${ip}</div>
+                    <div class="ip-meta">Last seen: ${formatDateTime(item.lastSeenAt)} - Visits: ${item.totalVisits || 0}${item.blocked ? ' - BLOCKED' : ''}</div>
+                `;
+
+                const actions = document.createElement('div');
+                actions.className = 'ip-actions';
+
+                const useIpButton = document.createElement('button');
+                useIpButton.type = 'button';
+                useIpButton.className = 'btn-all btn-inline';
+                useIpButton.innerText = 'Use';
+                useIpButton.addEventListener('click', () => {
+                    visitorIpInputEl.value = ip;
+                    visitorIpInputEl.focus();
+                });
+
+                const toggleButton = document.createElement('button');
+                toggleButton.type = 'button';
+                toggleButton.className = `${item.blocked ? 'btn-cam' : 'btn-stop'} btn-inline`;
+                toggleButton.innerText = item.blocked ? 'Unblock' : 'Block';
+                toggleButton.addEventListener('click', () => {
+                    if (item.blocked) {
+                        unblockIp(ip);
+                        return;
+                    }
+
+                    blockIp(ip, 'Manual block from visitor list');
+                });
+
+                actions.appendChild(useIpButton);
+                actions.appendChild(toggleButton);
+                row.appendChild(info);
+                row.appendChild(actions);
+                visitorListEl.appendChild(row);
+            });
+        }
+
+        async function refreshVisitorData() {
+            if (!adminIdToken) {
+                renderBlockedIps([]);
+                renderVisitors([]);
+                setVisitorFeedback('Login to manage visitor IPs.', 'pending');
+                return;
+            }
+
+            refreshVisitorsButtonEl.disabled = true;
+
+            try {
+                const [blockedData, visitorData] = await Promise.all([
+                    adminApiRequest('/admin/blocked-ips'),
+                    adminApiRequest('/admin/visitors?limit=25')
+                ]);
+
+                renderBlockedIps(blockedData.blockedIps || []);
+                renderVisitors(visitorData.visitors || []);
+                setVisitorFeedback('Visitor IP data updated.', 'ok');
+            } catch (error) {
+                setVisitorFeedback(error.message || 'Could not load visitor IP data.', 'warn');
+            } finally {
+                refreshVisitorsButtonEl.disabled = false;
+            }
+        }
+
+        async function blockIp(ip, reason = '') {
+            const normalizedIp = normalizeInputIp(ip);
+            if (!normalizedIp) {
+                setVisitorFeedback('Enter a valid IP address first.', 'warn');
+                return;
+            }
+
+            try {
+                setVisitorFeedback(`Blocking ${normalizedIp}...`, 'pending');
+                await adminApiRequest('/admin/blocked-ips/block', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        ip: normalizedIp,
+                        reason
+                    })
+                });
+
+                setVisitorFeedback(`${normalizedIp} blocked successfully.`, 'ok');
+                await refreshVisitorData();
+            } catch (error) {
+                setVisitorFeedback(error.message || 'Failed to block IP.', 'warn');
+            }
+        }
+
+        async function unblockIp(ip) {
+            const normalizedIp = normalizeInputIp(ip);
+            if (!normalizedIp) {
+                setVisitorFeedback('Enter a valid IP address first.', 'warn');
+                return;
+            }
+
+            try {
+                setVisitorFeedback(`Unblocking ${normalizedIp}...`, 'pending');
+                await adminApiRequest('/admin/blocked-ips/unblock', {
+                    method: 'POST',
+                    body: JSON.stringify({ ip: normalizedIp })
+                });
+
+                setVisitorFeedback(`${normalizedIp} unblocked successfully.`, 'ok');
+                await refreshVisitorData();
+            } catch (error) {
+                setVisitorFeedback(error.message || 'Failed to unblock IP.', 'warn');
+            }
+        }
+
         updateVideoEmptyState();
         updateRuntimeStateUI();
+        setIpControlsEnabled(false);
+
+        refreshVisitorsButtonEl.addEventListener('click', () => {
+            refreshVisitorData();
+        });
+
+        blockIpButtonEl.addEventListener('click', () => {
+            blockIp(visitorIpInputEl.value, visitorReasonInputEl.value.trim());
+        });
+
+        unblockIpButtonEl.addEventListener('click', () => {
+            unblockIp(visitorIpInputEl.value);
+        });
 
         function send(event) {
             if (!socket.connected) {
@@ -875,6 +1283,13 @@
                     socket.auth = {};
 
                     if (!user) {
+                        adminIdToken = '';
+                        setIpControlsEnabled(false);
+                        renderBlockedIps([]);
+                        renderVisitors([]);
+                        visitorIpInputEl.value = '';
+                        visitorReasonInputEl.value = '';
+                        setVisitorFeedback('Login to manage visitor IPs.', 'pending');
                         setAuthUI(false);
                         renderAgents([]);
                         videoList.innerHTML = '';
@@ -886,12 +1301,20 @@
 
                     setAuthUI(true, user.email || '');
                     setStatus('Authenticating...', '');
+                    setVisitorFeedback('Loading visitor IP data...', 'pending');
 
                     try {
                         const idToken = await user.getIdToken(true);
+                        adminIdToken = idToken;
+                        setIpControlsEnabled(true);
                         connectAuthenticatedSocket(idToken);
+                        await refreshVisitorData();
                         setAuthFeedback('', '');
                     } catch (error) {
+                        adminIdToken = '';
+                        setIpControlsEnabled(false);
+                        renderBlockedIps([]);
+                        renderVisitors([]);
                         setAuthUI(false);
                         setAuthFeedback(normalizeFirebaseAuthError(error, 'Could not get auth token.'), 'warn');
                         setStatus('Authentication token failed', 'error');

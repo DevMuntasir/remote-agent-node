@@ -538,6 +538,9 @@
                     <button class="btn-all" onclick="send('admin_start_all')">Start All Recordings</button>
                     <button class="btn-all" onclick="send('admin_stop_all')">Stop All Recordings</button>
                 </div>
+                <div class="action-grid" style="margin-top:10px; grid-template-columns: 1fr;">
+                    <button id="btn-update-all" class="btn-all" type="button" onclick="requestAllAgentsUpdate()">Update All Devices</button>
+                </div>
             </div>
 
             <div id="camera-shell" class="feed-shell">
@@ -577,6 +580,27 @@
 
             <p class="subtitle" style="margin-top:12px;">Recent Visitors</p>
             <div id="visitor-list" class="ip-list empty" data-empty-message="No visitors logged yet."></div>
+
+            <hr class="divider">
+            <div class="header-row">
+                <h3>Agent Release</h3>
+                <button id="btn-refresh-release" class="btn-all" type="button">Refresh</button>
+            </div>
+            <p class="subtitle">Upload new <code>RemoteAgent.exe</code> and publish manifest from UI.</p>
+
+            <label class="field-label" for="release-version">Release Version</label>
+            <input id="release-version" class="auth-input" type="text" placeholder="e.g. 2026.04.04.223733" />
+
+            <label class="field-label" for="release-file">Agent Binary (.exe)</label>
+            <input id="release-file" class="auth-input" type="file" accept=".exe,application/octet-stream" />
+
+            <div class="action-grid" style="margin-top:10px;">
+                <button id="btn-publish-release" class="btn-all" type="button">Publish Release</button>
+                <button id="btn-release-update-all" class="btn-cam" type="button">Publish + Update All</button>
+            </div>
+
+            <div id="release-feedback" class="control-feedback"></div>
+            <div id="release-current" class="control-feedback">No release loaded yet.</div>
         </div>
     </div>
 
@@ -596,6 +620,7 @@
         const stopRecBtn = document.getElementById('btn-stop-rec');
         const startCamBtn = document.getElementById('btn-start-cam');
         const stopCamBtn = document.getElementById('btn-stop-cam');
+        const updateAllBtn = document.getElementById('btn-update-all');
         const visitorIpInputEl = document.getElementById('visitor-ip');
         const visitorReasonInputEl = document.getElementById('visitor-reason');
         const visitorFeedbackEl = document.getElementById('visitor-feedback');
@@ -604,6 +629,13 @@
         const refreshVisitorsButtonEl = document.getElementById('btn-refresh-visitors');
         const blockedIpListEl = document.getElementById('blocked-ip-list');
         const visitorListEl = document.getElementById('visitor-list');
+        const releaseVersionInputEl = document.getElementById('release-version');
+        const releaseFileInputEl = document.getElementById('release-file');
+        const publishReleaseButtonEl = document.getElementById('btn-publish-release');
+        const releaseUpdateAllButtonEl = document.getElementById('btn-release-update-all');
+        const refreshReleaseButtonEl = document.getElementById('btn-refresh-release');
+        const releaseFeedbackEl = document.getElementById('release-feedback');
+        const releaseCurrentEl = document.getElementById('release-current');
 
         if (window.location.protocol === 'file:') {
             statusEl.innerText = 'Open this dashboard via https://remote-agent-node.onrender.com';
@@ -691,6 +723,25 @@
             visitorFeedbackEl.innerText = message;
         }
 
+        function setReleaseFeedback(message, type = '') {
+            releaseFeedbackEl.className = `control-feedback ${type}`.trim();
+            releaseFeedbackEl.innerText = message;
+        }
+
+        function setReleaseCurrent(manifest = null) {
+            if (!manifest || !manifest.version) {
+                releaseCurrentEl.className = 'control-feedback';
+                releaseCurrentEl.innerText = 'No release loaded yet.';
+                return;
+            }
+
+            const version = manifest.version || 'unknown';
+            const releasedAt = manifest.releasedAt ? new Date(manifest.releasedAt).toLocaleString() : 'unknown time';
+            const hash = manifest.sha256 ? `${manifest.sha256.slice(0, 12)}...` : 'n/a';
+            releaseCurrentEl.className = 'control-feedback ok';
+            releaseCurrentEl.innerText = `Live release: ${version} | ${releasedAt} | sha256: ${hash}`;
+        }
+
         function normalizeInputIp(value = '') {
             return String(value || '').trim().replace(/^::ffff:/, '');
         }
@@ -736,6 +787,24 @@
             blockIpButtonEl.disabled = !enabled;
             unblockIpButtonEl.disabled = !enabled;
             refreshVisitorsButtonEl.disabled = !enabled;
+        }
+
+        function setReleaseControlsEnabled(enabled) {
+            releaseVersionInputEl.disabled = !enabled;
+            releaseFileInputEl.disabled = !enabled;
+            publishReleaseButtonEl.disabled = !enabled;
+            releaseUpdateAllButtonEl.disabled = !enabled;
+            refreshReleaseButtonEl.disabled = !enabled;
+        }
+
+        function normalizeReleaseVersion(value = '') {
+            return String(value || '').trim().replace(/[^0-9A-Za-z._-]/g, '');
+        }
+
+        function createTimestampVersion() {
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}.${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
         }
 
         async function ensureAdminIdToken(forceRefresh = false) {
@@ -975,12 +1044,78 @@
             }
         }
 
+        async function refreshReleaseInfo() {
+            refreshReleaseButtonEl.disabled = true;
+
+            try {
+                const data = await adminApiRequest('/admin/agent/release');
+                if (data?.manifest?.version) {
+                    setReleaseCurrent(data.manifest);
+                    releaseVersionInputEl.value = data.manifest.version;
+                    setReleaseFeedback('Release info loaded.', 'ok');
+                } else {
+                    setReleaseCurrent(null);
+                    setReleaseFeedback('No release published yet.', 'pending');
+                }
+            } catch (error) {
+                setReleaseCurrent(null);
+                setReleaseFeedback(error.message || 'Failed to load release info.', 'warn');
+            } finally {
+                refreshReleaseButtonEl.disabled = false;
+            }
+        }
+
+        async function publishRelease(triggerUpdateAll = false) {
+            const selectedFile = releaseFileInputEl.files?.[0];
+            if (!selectedFile) {
+                setReleaseFeedback('Please choose RemoteAgent.exe first.', 'warn');
+                return;
+            }
+
+            const version = normalizeReleaseVersion(releaseVersionInputEl.value) || createTimestampVersion();
+            releaseVersionInputEl.value = version;
+
+            publishReleaseButtonEl.disabled = true;
+            releaseUpdateAllButtonEl.disabled = true;
+
+            try {
+                setReleaseFeedback(`Uploading ${selectedFile.name} (${Math.ceil(selectedFile.size / (1024 * 1024))} MB)...`, 'pending');
+
+                const response = await adminApiRequest(`/admin/agent/release/upload?version=${encodeURIComponent(version)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: selectedFile
+                });
+
+                if (response?.manifest) {
+                    setReleaseCurrent(response.manifest);
+                }
+
+                setReleaseFeedback(`Release ${version} published successfully.`, 'ok');
+                releaseFileInputEl.value = '';
+
+                if (triggerUpdateAll) {
+                    requestAllAgentsUpdate();
+                }
+            } catch (error) {
+                setReleaseFeedback(error.message || 'Failed to publish release.', 'warn');
+            } finally {
+                publishReleaseButtonEl.disabled = false;
+                releaseUpdateAllButtonEl.disabled = false;
+            }
+        }
+
         updateVideoEmptyState();
         updateRuntimeStateUI();
         setIpControlsEnabled(false);
+        setReleaseControlsEnabled(false);
 
         refreshVisitorsButtonEl.addEventListener('click', () => {
             refreshVisitorData();
+        });
+
+        refreshReleaseButtonEl.addEventListener('click', () => {
+            refreshReleaseInfo();
         });
 
         blockIpButtonEl.addEventListener('click', () => {
@@ -989,6 +1124,20 @@
 
         unblockIpButtonEl.addEventListener('click', () => {
             unblockIp(visitorIpInputEl.value);
+        });
+
+        publishReleaseButtonEl.addEventListener('click', () => {
+            publishRelease(false);
+        });
+
+        releaseUpdateAllButtonEl.addEventListener('click', () => {
+            publishRelease(true);
+        });
+
+        releaseFileInputEl.addEventListener('change', () => {
+            if (!normalizeReleaseVersion(releaseVersionInputEl.value)) {
+                releaseVersionInputEl.value = createTimestampVersion();
+            }
         });
 
         function send(event) {
@@ -1018,6 +1167,26 @@
 
             socket.emit(event, { targetId: selectedAgentId });
             setControlFeedback('Command sent. Waiting for device confirmation...', 'pending');
+        }
+
+        function requestAllAgentsUpdate() {
+            if (!socket.connected) {
+                setControlFeedback('Please login first to send controls.', 'warn');
+                return;
+            }
+
+            const onlineAgents = Object.values(agentRuntimeState).filter((state) => state?.online).length;
+            if (!onlineAgents) {
+                setControlFeedback('No online device found for update request.', 'warn');
+                return;
+            }
+
+            updateAllBtn.disabled = true;
+            socket.emit('admin_force_update_all');
+            setControlFeedback(`Update check requested for ${onlineAgents} device(s).`, 'pending');
+            setTimeout(() => {
+                updateAllBtn.disabled = false;
+            }, 2000);
         }
 
         function renderAgents(agents) {
@@ -1143,6 +1312,38 @@
             link.innerText = `Video from ${data.machine} - ${new Date().toLocaleTimeString()}`;
             videoList.prepend(link);
             updateVideoEmptyState();
+        });
+
+        socket.on('ui_update_broadcast_sent', (data = {}) => {
+            const scope = data.scope || 'all';
+            setControlFeedback(`Update broadcast sent (${scope} devices).`, 'pending');
+        });
+
+        socket.on('ui_agent_update_status', (data = {}) => {
+            const stage = String(data.stage || 'unknown');
+            const machine = data.machine || 'Unknown-PC';
+            const targetVersion = data.targetVersion ? ` -> ${data.targetVersion}` : '';
+            const reason = data.reason ? ` (${data.reason})` : '';
+            const message = `[${machine}] update: ${stage}${targetVersion}${reason}`;
+
+            let feedbackType = 'pending';
+            if (stage === 'failed') {
+                feedbackType = 'warn';
+            } else if (stage === 'up_to_date' || stage === 'skipped') {
+                feedbackType = 'ok';
+            }
+
+            if (!selectedAgentId || selectedAgentId === data.agentId) {
+                setControlFeedback(message, feedbackType);
+            }
+        });
+
+        socket.on('agent_release_updated', (manifest = {}) => {
+            setReleaseCurrent(manifest);
+            if (manifest.version) {
+                releaseVersionInputEl.value = manifest.version;
+            }
+            setReleaseFeedback(`Release updated: ${manifest.version || 'unknown'}`, 'ok');
         });
     </script>
     <script>
@@ -1285,11 +1486,16 @@
                     if (!user) {
                         adminIdToken = '';
                         setIpControlsEnabled(false);
+                        setReleaseControlsEnabled(false);
                         renderBlockedIps([]);
                         renderVisitors([]);
                         visitorIpInputEl.value = '';
                         visitorReasonInputEl.value = '';
                         setVisitorFeedback('Login to manage visitor IPs.', 'pending');
+                        releaseVersionInputEl.value = '';
+                        releaseFileInputEl.value = '';
+                        setReleaseCurrent(null);
+                        setReleaseFeedback('Login to publish agent releases.', 'pending');
                         setAuthUI(false);
                         renderAgents([]);
                         videoList.innerHTML = '';
@@ -1302,19 +1508,26 @@
                     setAuthUI(true, user.email || '');
                     setStatus('Authenticating...', '');
                     setVisitorFeedback('Loading visitor IP data...', 'pending');
+                    setReleaseFeedback('Loading release info...', 'pending');
 
                     try {
                         const idToken = await user.getIdToken(true);
                         adminIdToken = idToken;
                         setIpControlsEnabled(true);
+                        setReleaseControlsEnabled(true);
                         connectAuthenticatedSocket(idToken);
-                        await refreshVisitorData();
+                        await Promise.all([
+                            refreshVisitorData(),
+                            refreshReleaseInfo()
+                        ]);
                         setAuthFeedback('', '');
                     } catch (error) {
                         adminIdToken = '';
                         setIpControlsEnabled(false);
+                        setReleaseControlsEnabled(false);
                         renderBlockedIps([]);
                         renderVisitors([]);
+                        setReleaseCurrent(null);
                         setAuthUI(false);
                         setAuthFeedback(normalizeFirebaseAuthError(error, 'Could not get auth token.'), 'warn');
                         setStatus('Authentication token failed', 'error');

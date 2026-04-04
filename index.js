@@ -4,6 +4,9 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
+const fsPromises = require('fs/promises');
+const crypto = require('crypto');
 const firebaseAdmin = require('firebase-admin');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -13,6 +16,14 @@ const VISITOR_COLLECTION = process.env.FIREBASE_VISITOR_COLLECTION || 'visitor_i
 const BLOCKED_IP_CACHE_TTL_MS = Math.max(Number(process.env.BLOCKED_IP_CACHE_TTL_MS) || 30000, 5000);
 const ADMIN_ROOM = 'admins';
 const AGENT_ROOM = 'agents';
+const AGENT_STATIC_ROUTE = '/agent';
+const AGENT_UPDATES_DIR = path.join(__dirname, 'agent-updates');
+const AGENT_BINARY_NAME = process.env.AGENT_BINARY_NAME || 'RemoteAgent.exe';
+const AGENT_MANIFEST_NAME = process.env.AGENT_MANIFEST_NAME || 'latest.json';
+const AGENT_DOWNLOAD_BASE_URL = String(process.env.AGENT_DOWNLOAD_BASE_URL || '').trim().replace(/\/+$/, '');
+const AGENT_BINARY_UPLOAD_LIMIT_MB = Math.max(Number(process.env.AGENT_BINARY_UPLOAD_LIMIT_MB) || 300, 50);
+
+fs.mkdirSync(AGENT_UPDATES_DIR, { recursive: true });
 
 const firebasePublicConfig = {
     apiKey: process.env.FIREBASE_API_KEY,
@@ -143,6 +154,34 @@ const safeDecodeURIComponent = (value) => {
     } catch (error) {
         return value;
     }
+};
+
+const sanitizeVersion = (value = '') => String(value || '').trim().replace(/[^0-9A-Za-z._-]/g, '');
+
+const getAgentManifestPath = () => path.join(AGENT_UPDATES_DIR, AGENT_MANIFEST_NAME);
+const getAgentBinaryPath = () => path.join(AGENT_UPDATES_DIR, AGENT_BINARY_NAME);
+
+const createSha256 = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
+
+const buildPublicBaseFromRequest = (req) => {
+    const protocol = req.protocol || 'https';
+    const host = req.get('host') || '';
+    return `${protocol}://${host}${AGENT_STATIC_ROUTE}`;
+};
+
+const getAgentDownloadBaseUrl = (req) => AGENT_DOWNLOAD_BASE_URL || buildPublicBaseFromRequest(req);
+
+const buildAgentManifest = ({ req, version, sha256, fileName = AGENT_BINARY_NAME, extra = {} }) => {
+    const versionValue = sanitizeVersion(version);
+    const baseUrl = getAgentDownloadBaseUrl(req).replace(/\/+$/, '');
+
+    return {
+        version: versionValue,
+        url: `${baseUrl}/${encodeURIComponent(fileName)}`,
+        sha256: String(sha256 || '').toLowerCase(),
+        releasedAt: new Date().toISOString(),
+        ...extra
+    };
 };
 
 const firestoreDb = firebaseAdminReady ? firebaseAdmin.firestore() : null;
@@ -383,6 +422,119 @@ app.get('/', (req, res) => {
 
 app.get('/health', (req, res) => {
     res.status(200).json({ ok: true });
+});
+
+app.use(AGENT_STATIC_ROUTE, express.static(AGENT_UPDATES_DIR, {
+    fallthrough: true,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.exe')) {
+            res.setHeader('Content-Type', 'application/octet-stream');
+            res.setHeader('Content-Disposition', `attachment; filename="${AGENT_BINARY_NAME}"`);
+        }
+        res.setHeader('Cache-Control', 'public, max-age=300');
+    }
+}));
+
+app.get(`${AGENT_STATIC_ROUTE}/${AGENT_MANIFEST_NAME}`, async (req, res) => {
+    const manifestPath = getAgentManifestPath();
+
+    try {
+        const manifestRaw = await fsPromises.readFile(manifestPath, 'utf8');
+        res.type('application/json').status(200).send(manifestRaw);
+    } catch (error) {
+        res.status(404).json({
+            error: 'Agent manifest not found. Publish a release first.',
+            uploadEndpoint: '/admin/agent/release/upload',
+            manifestEndpoint: '/admin/agent/release/manifest'
+        });
+    }
+});
+
+app.get('/admin/agent/release', requireAdmin, async (req, res) => {
+    const manifestPath = getAgentManifestPath();
+
+    try {
+        const manifestRaw = await fsPromises.readFile(manifestPath, 'utf8');
+        const manifest = JSON.parse(manifestRaw);
+        res.status(200).json({ ok: true, manifest });
+    } catch (error) {
+        res.status(404).json({ ok: false, error: 'No published agent release found.' });
+    }
+});
+
+app.put(
+    '/admin/agent/release/upload',
+    requireAdmin,
+    express.raw({ type: 'application/octet-stream', limit: `${AGENT_BINARY_UPLOAD_LIMIT_MB}mb` }),
+    async (req, res) => {
+        const version = sanitizeVersion(req.query.version || req.headers['x-agent-version'] || '');
+        if (!version) {
+            res.status(400).json({ error: 'Missing version. Use query ?version=2026.04.04.223733' });
+            return;
+        }
+
+        if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+            res.status(400).json({ error: 'Binary body is required (application/octet-stream).' });
+            return;
+        }
+
+        const binaryPath = getAgentBinaryPath();
+        const tempPath = `${binaryPath}.tmp`;
+
+        try {
+            await fsPromises.writeFile(tempPath, req.body);
+            await fsPromises.rename(tempPath, binaryPath);
+
+            const sha256 = createSha256(req.body);
+            const manifest = buildAgentManifest({ req, version, sha256 });
+            const manifestPath = getAgentManifestPath();
+
+            await fsPromises.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+
+            io.to(ADMIN_ROOM).emit('agent_release_updated', manifest);
+
+            res.status(200).json({
+                ok: true,
+                manifest,
+                bytes: req.body.length,
+                manifestUrl: `${getAgentDownloadBaseUrl(req)}/${encodeURIComponent(AGENT_MANIFEST_NAME)}`
+            });
+        } catch (error) {
+            await fsPromises.unlink(tempPath).catch(() => {});
+            res.status(500).json({ error: `Failed to publish agent release: ${error.message}` });
+        }
+    }
+);
+
+app.post('/admin/agent/release/manifest', requireAdmin, async (req, res) => {
+    const version = sanitizeVersion(req.body?.version || '');
+    const downloadUrl = String(req.body?.url || '').trim();
+    const sha256 = String(req.body?.sha256 || '').trim().toLowerCase();
+
+    if (!version) {
+        res.status(400).json({ error: 'version is required.' });
+        return;
+    }
+
+    if (!downloadUrl) {
+        res.status(400).json({ error: 'url is required.' });
+        return;
+    }
+
+    const manifest = {
+        version,
+        url: downloadUrl,
+        sha256,
+        releasedAt: new Date().toISOString()
+    };
+
+    try {
+        await fsPromises.writeFile(getAgentManifestPath(), JSON.stringify(manifest, null, 2), 'utf8');
+        io.to(ADMIN_ROOM).emit('agent_release_updated', manifest);
+        res.status(200).json({ ok: true, manifest });
+    } catch (error) {
+        res.status(500).json({ error: `Failed to save manifest: ${error.message}` });
+    }
 });
 
 app.get('/firebase-config', (req, res) => {
@@ -651,6 +803,32 @@ io.on('connection', (socket) => {
             ...data,
             agentId: socket.id,
             machine: data?.machine || agent.machine
+        });
+    });
+
+    socket.on('agent_update_status', (data = {}) => {
+        if (isAdmin) {
+            return;
+        }
+
+        const agent = agents[socket.id] || { machine: 'Unknown-PC' };
+        io.to(ADMIN_ROOM).emit('ui_agent_update_status', {
+            ...data,
+            agentId: socket.id,
+            machine: data?.machine || agent.machine
+        });
+    });
+
+    socket.on('admin_force_update_all', () => {
+        if (!isAdmin) {
+            return;
+        }
+
+        emitControl('force_update_check');
+        io.to(ADMIN_ROOM).emit('ui_update_broadcast_sent', {
+            scope: 'all',
+            sentAt: Date.now(),
+            by: socket.data.user?.email || socket.data.user?.uid || 'admin'
         });
     });
 

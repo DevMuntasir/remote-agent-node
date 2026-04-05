@@ -299,11 +299,42 @@
             display: none;
         }
 
+        .feed-shell:fullscreen {
+            border-radius: 0;
+            border: 0;
+            min-height: 100vh;
+            background: #000;
+        }
+
+        .feed-shell:fullscreen #camera-feed {
+            object-fit: contain;
+        }
+
+        .feed-shell:-webkit-full-screen {
+            border-radius: 0;
+            border: 0;
+            min-height: 100vh;
+            background: #000;
+        }
+
+        .feed-shell:-webkit-full-screen #camera-feed {
+            object-fit: contain;
+        }
+
         #camera-feed {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
+        }
+
+        .preview-tools {
+            margin-top: 10px;
+        }
+
+        #preview-feedback {
+            margin-top: 8px;
+            min-height: 18px;
         }
 
         #video-list {
@@ -546,6 +577,15 @@
             <div id="camera-shell" class="feed-shell">
                 <img id="camera-feed" src="" alt="Live camera stream" />
             </div>
+            <div class="action-grid preview-tools">
+                <button id="btn-local-rec-start" class="btn-rec" type="button" onclick="startLocalPreviewRecording()">Record Preview</button>
+                <button id="btn-local-rec-stop" class="btn-stop" type="button" onclick="stopLocalPreviewRecording()" disabled>Stop & Save</button>
+            </div>
+            <div class="action-grid preview-tools">
+                <button id="btn-snapshot" class="btn-cam" type="button" onclick="capturePreviewSnapshot()" disabled>Take Snapshot</button>
+                <button id="btn-fullscreen" class="btn-all" type="button" onclick="togglePreviewFullscreen()" disabled>Fullscreen Preview</button>
+            </div>
+            <div id="preview-feedback" class="control-feedback"></div>
         </div>
 
         <div class="card">
@@ -580,6 +620,7 @@
 
             <p class="subtitle" style="margin-top:12px;">Recent Visitors</p>
             <div id="visitor-list" class="ip-list empty" data-empty-message="No visitors logged yet."></div>
+            <button id="btn-more-visitors" class="btn-all btn-inline" type="button" style="display:none; margin-top:10px;">More</button>
 
             <hr class="divider">
             <div class="header-row">
@@ -616,10 +657,15 @@
         const recordingChip = document.getElementById('recording-chip');
         const cameraChip = document.getElementById('camera-chip');
         const controlFeedbackEl = document.getElementById('control-feedback');
+        const previewFeedbackEl = document.getElementById('preview-feedback');
         const startRecBtn = document.getElementById('btn-start-rec');
         const stopRecBtn = document.getElementById('btn-stop-rec');
         const startCamBtn = document.getElementById('btn-start-cam');
         const stopCamBtn = document.getElementById('btn-stop-cam');
+        const localRecordStartBtn = document.getElementById('btn-local-rec-start');
+        const localRecordStopBtn = document.getElementById('btn-local-rec-stop');
+        const snapshotBtn = document.getElementById('btn-snapshot');
+        const fullscreenBtn = document.getElementById('btn-fullscreen');
         const updateAllBtn = document.getElementById('btn-update-all');
         const visitorIpInputEl = document.getElementById('visitor-ip');
         const visitorReasonInputEl = document.getElementById('visitor-reason');
@@ -629,6 +675,7 @@
         const refreshVisitorsButtonEl = document.getElementById('btn-refresh-visitors');
         const blockedIpListEl = document.getElementById('blocked-ip-list');
         const visitorListEl = document.getElementById('visitor-list');
+        const moreVisitorsButtonEl = document.getElementById('btn-more-visitors');
         const releaseVersionInputEl = document.getElementById('release-version');
         const releaseFileInputEl = document.getElementById('release-file');
         const publishReleaseButtonEl = document.getElementById('btn-publish-release');
@@ -648,6 +695,20 @@
         let selectedAgentId = '';
         let adminIdToken = '';
         const agentRuntimeState = {};
+        const previewCanvas = document.createElement('canvas');
+        const previewCanvasContext = previewCanvas.getContext('2d');
+        const PREVIEW_CAPTURE_FPS = 24;
+        let localMediaRecorder = null;
+        let localMediaStream = null;
+        let localRecordingChunks = [];
+        let localRecordingActive = false;
+        let localRecordingSaveOnStop = true;
+        let localRecordingStopMessage = '';
+        let previewRenderRaf = 0;
+        let previewLastFrameTimestamp = 0;
+        const VISITOR_PREVIEW_LIMIT = 5;
+        let cachedVisitors = [];
+        let showAllVisitors = false;
 
         function setStatus(message, state) {
             statusEl.classList.remove('connected', 'error');
@@ -660,6 +721,14 @@
         function setCameraImage(source) {
             cameraFeed.src = source;
             cameraShell.classList.toggle('has-image', Boolean(source));
+            if (!source && localRecordingActive) {
+                stopLocalPreviewRecording(true, 'Camera feed stopped. Recorded part saved locally.');
+            }
+            if (!source && document.fullscreenElement === cameraShell && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {
+                });
+            }
+            updateLocalPreviewButtons();
         }
 
         function updateVideoEmptyState() {
@@ -669,6 +738,274 @@
         function setControlFeedback(message, type = '') {
             controlFeedbackEl.className = `control-feedback ${type}`.trim();
             controlFeedbackEl.innerText = message;
+        }
+
+        function setPreviewFeedback(message, type = '') {
+            previewFeedbackEl.className = `control-feedback ${type}`.trim();
+            previewFeedbackEl.innerText = message;
+        }
+
+        function buildLocalCaptureName(extension) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const suffix = selectedAgentId ? selectedAgentId.slice(0, 8) : 'preview';
+            return `portal-camera-${suffix}-${timestamp}.${extension}`;
+        }
+
+        function downloadBlob(blob, fileName) {
+            const objectUrl = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = objectUrl;
+            anchor.download = fileName;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+        }
+
+        function updateFullscreenButtonText() {
+            if (!fullscreenBtn) {
+                return;
+            }
+            const isFullscreen = document.fullscreenElement === cameraShell;
+            fullscreenBtn.innerText = isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Preview';
+        }
+
+        function updateLocalPreviewButtons() {
+            const hasFeed = Boolean(cameraFeed.src);
+            localRecordStartBtn.disabled = !hasFeed || localRecordingActive;
+            localRecordStopBtn.disabled = !localRecordingActive;
+            snapshotBtn.disabled = !hasFeed;
+            fullscreenBtn.disabled = !hasFeed;
+            updateFullscreenButtonText();
+        }
+
+        function syncPreviewCanvasSize() {
+            const feedWidth = cameraFeed.naturalWidth || cameraFeed.width;
+            const feedHeight = cameraFeed.naturalHeight || cameraFeed.height;
+
+            if (!feedWidth || !feedHeight) {
+                return false;
+            }
+
+            if (previewCanvas.width !== feedWidth || previewCanvas.height !== feedHeight) {
+                previewCanvas.width = feedWidth;
+                previewCanvas.height = feedHeight;
+            }
+
+            return true;
+        }
+
+        function drawCurrentPreviewFrame() {
+            if (!cameraFeed.src || !previewCanvasContext || !syncPreviewCanvasSize()) {
+                return false;
+            }
+
+            if (!cameraFeed.complete || !cameraFeed.naturalWidth) {
+                return false;
+            }
+
+            previewCanvasContext.drawImage(cameraFeed, 0, 0, previewCanvas.width, previewCanvas.height);
+            return true;
+        }
+
+        function renderPreviewRecordingFrame(timestamp = 0) {
+            if (!localRecordingActive) {
+                return;
+            }
+
+            const frameInterval = 1000 / PREVIEW_CAPTURE_FPS;
+            if (timestamp - previewLastFrameTimestamp >= frameInterval) {
+                drawCurrentPreviewFrame();
+                previewLastFrameTimestamp = timestamp;
+            }
+
+            previewRenderRaf = window.requestAnimationFrame(renderPreviewRecordingFrame);
+        }
+
+        function getSupportedRecorderMimeType() {
+            if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+                return '';
+            }
+
+            const candidates = [
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=vp8,opus',
+                'video/webm'
+            ];
+
+            return candidates.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || '';
+        }
+
+        function cleanupLocalRecorderResources() {
+            if (previewRenderRaf) {
+                window.cancelAnimationFrame(previewRenderRaf);
+                previewRenderRaf = 0;
+            }
+
+            if (localMediaStream) {
+                localMediaStream.getTracks().forEach((track) => track.stop());
+                localMediaStream = null;
+            }
+        }
+
+        function finalizeLocalPreviewRecording() {
+            const shouldSave = localRecordingSaveOnStop;
+            const stopMessage = localRecordingStopMessage;
+            const recorderMimeType = localMediaRecorder?.mimeType || 'video/webm';
+            const chunks = [...localRecordingChunks];
+
+            cleanupLocalRecorderResources();
+            localMediaRecorder = null;
+            localRecordingChunks = [];
+            localRecordingSaveOnStop = true;
+            localRecordingStopMessage = '';
+            updateLocalPreviewButtons();
+
+            if (!chunks.length) {
+                setPreviewFeedback(stopMessage || 'No video data captured from preview.', 'warn');
+                return;
+            }
+
+            if (!shouldSave) {
+                setPreviewFeedback(stopMessage || 'Local preview recording stopped.', 'warn');
+                return;
+            }
+
+            const extension = recorderMimeType.includes('mp4') ? 'mp4' : 'webm';
+            const videoBlob = new Blob(chunks, { type: recorderMimeType });
+            downloadBlob(videoBlob, buildLocalCaptureName(extension));
+            setPreviewFeedback(stopMessage || 'Local recording saved successfully.', 'ok');
+        }
+
+        function startLocalPreviewRecording() {
+            if (localRecordingActive) {
+                setPreviewFeedback('Local preview recording is already running.', 'pending');
+                return;
+            }
+
+            if (typeof MediaRecorder === 'undefined') {
+                setPreviewFeedback('This browser does not support MediaRecorder.', 'warn');
+                return;
+            }
+
+            if (!cameraFeed.src) {
+                setPreviewFeedback('No live preview available. Turn camera on first.', 'warn');
+                return;
+            }
+
+            if (!drawCurrentPreviewFrame()) {
+                setPreviewFeedback('Preview frame is not ready yet. Try again in a moment.', 'warn');
+                return;
+            }
+
+            const stream = previewCanvas.captureStream(PREVIEW_CAPTURE_FPS);
+            const mimeType = getSupportedRecorderMimeType();
+
+            try {
+                localMediaRecorder = mimeType
+                    ? new MediaRecorder(stream, { mimeType })
+                    : new MediaRecorder(stream);
+            } catch (error) {
+                stream.getTracks().forEach((track) => track.stop());
+                setPreviewFeedback(`Could not start local recorder: ${error.message}`, 'warn');
+                return;
+            }
+
+            localMediaStream = stream;
+            localRecordingChunks = [];
+            localRecordingActive = true;
+            localRecordingSaveOnStop = true;
+            localRecordingStopMessage = '';
+            previewLastFrameTimestamp = 0;
+
+            localMediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    localRecordingChunks.push(event.data);
+                }
+            };
+
+            localMediaRecorder.onstop = () => {
+                finalizeLocalPreviewRecording();
+            };
+
+            localMediaRecorder.onerror = (event) => {
+                const reason = event?.error?.message || 'Unknown recording error';
+                localRecordingActive = false;
+                localRecordingSaveOnStop = false;
+                localRecordingStopMessage = `Local recorder error: ${reason}`;
+                if (localMediaRecorder?.state !== 'inactive') {
+                    localMediaRecorder.stop();
+                    return;
+                }
+                finalizeLocalPreviewRecording();
+            };
+
+            localMediaRecorder.start(1000);
+            previewRenderRaf = window.requestAnimationFrame(renderPreviewRecordingFrame);
+            updateLocalPreviewButtons();
+            setPreviewFeedback('Recording preview locally... Click "Stop & Save" when done.', 'pending');
+        }
+
+        function stopLocalPreviewRecording(saveToDisk = true, message = 'Local recording stopped and saved.') {
+            if (!localMediaRecorder) {
+                setPreviewFeedback('No local recording is running right now.', 'warn');
+                return;
+            }
+
+            localRecordingActive = false;
+            localRecordingSaveOnStop = saveToDisk;
+            localRecordingStopMessage = message;
+            updateLocalPreviewButtons();
+            if (localMediaRecorder.state === 'inactive') {
+                finalizeLocalPreviewRecording();
+                return;
+            }
+            localMediaRecorder.stop();
+        }
+
+        function capturePreviewSnapshot() {
+            if (!cameraFeed.src) {
+                setPreviewFeedback('No preview frame available for snapshot.', 'warn');
+                return;
+            }
+
+            if (!drawCurrentPreviewFrame()) {
+                setPreviewFeedback('Preview frame is not ready yet. Try again.', 'warn');
+                return;
+            }
+
+            previewCanvas.toBlob((blob) => {
+                if (!blob) {
+                    setPreviewFeedback('Snapshot failed. Please try again.', 'warn');
+                    return;
+                }
+
+                downloadBlob(blob, buildLocalCaptureName('png'));
+                setPreviewFeedback('Snapshot saved locally.', 'ok');
+            }, 'image/png');
+        }
+
+        async function togglePreviewFullscreen() {
+            if (!cameraFeed.src) {
+                setPreviewFeedback('No preview available for fullscreen mode.', 'warn');
+                return;
+            }
+
+            try {
+                if (document.fullscreenElement === cameraShell && document.exitFullscreen) {
+                    await document.exitFullscreen();
+                } else {
+                    const requestFullscreen = cameraShell.requestFullscreen || cameraShell.webkitRequestFullscreen;
+                    if (!requestFullscreen) {
+                        throw new Error('Fullscreen API is not supported in this browser');
+                    }
+                    await requestFullscreen.call(cameraShell);
+                }
+            } catch (error) {
+                setPreviewFeedback(`Fullscreen failed: ${error.message}`, 'warn');
+            } finally {
+                updateLocalPreviewButtons();
+            }
         }
 
         function setChipState(chip, label, state) {
@@ -717,6 +1054,16 @@
             setChipState(cameraChip, 'Camera', isOnline ? state?.cameraOn : null);
             updateControlButtons(state, isOnline);
         }
+
+        cameraShell.addEventListener('dblclick', () => {
+            if (!fullscreenBtn.disabled) {
+                togglePreviewFullscreen();
+            }
+        });
+
+        document.addEventListener('fullscreenchange', updateLocalPreviewButtons);
+
+        updateLocalPreviewButtons();
 
         function setVisitorFeedback(message, type = '') {
             visitorFeedbackEl.className = `control-feedback ${type}`.trim();
@@ -787,6 +1134,7 @@
             blockIpButtonEl.disabled = !enabled;
             unblockIpButtonEl.disabled = !enabled;
             refreshVisitorsButtonEl.disabled = !enabled;
+            moreVisitorsButtonEl.disabled = !enabled;
         }
 
         function setReleaseControlsEnabled(enabled) {
@@ -799,6 +1147,21 @@
 
         function normalizeReleaseVersion(value = '') {
             return String(value || '').trim().replace(/[^0-9A-Za-z._-]/g, '');
+        }
+
+        function extractVersionFromFileName(fileName = '') {
+            const name = String(fileName || '');
+            const strictMatch = name.match(/(\d{4}\.\d{2}\.\d{2}\.\d{6})/);
+            if (strictMatch?.[1]) {
+                return strictMatch[1];
+            }
+
+            const genericMatch = name.match(/(\d+(?:[._-]\d+){2,})/);
+            if (!genericMatch?.[1]) {
+                return '';
+            }
+
+            return normalizeReleaseVersion(genericMatch[1].replace(/[_-]/g, '.'));
         }
 
         function createTimestampVersion() {
@@ -914,23 +1277,43 @@
             });
         }
 
-        function renderVisitors(visitors = []) {
+        function renderVisitors(visitors = [], resetPreview = false) {
+            if (resetPreview) {
+                showAllVisitors = false;
+            }
+
+            cachedVisitors = visitors;
             visitorListEl.innerHTML = '';
 
-            if (!visitors.length) {
+            const normalizedVisitors = visitors
+                .map((item) => {
+                    const ip = normalizeInputIp(item.ip || safeDecode(item.id || ''));
+                    if (!ip) {
+                        return null;
+                    }
+
+                    return {
+                        ...item,
+                        ip
+                    };
+                })
+                .filter(Boolean);
+
+            if (!normalizedVisitors.length) {
                 visitorListEl.classList.add('empty');
                 visitorListEl.dataset.emptyMessage = 'No visitors logged yet.';
+                moreVisitorsButtonEl.style.display = 'none';
                 return;
             }
 
             visitorListEl.classList.remove('empty');
 
-            visitors.forEach((item) => {
-                const ip = normalizeInputIp(item.ip || safeDecode(item.id || ''));
-                if (!ip) {
-                    return;
-                }
+            const visibleVisitors = showAllVisitors
+                ? normalizedVisitors
+                : normalizedVisitors.slice(0, VISITOR_PREVIEW_LIMIT);
 
+            visibleVisitors.forEach((item) => {
+                const ip = item.ip;
                 const row = document.createElement('div');
                 row.className = 'ip-row';
 
@@ -971,6 +1354,9 @@
                 row.appendChild(actions);
                 visitorListEl.appendChild(row);
             });
+
+            const hasMoreVisitors = normalizedVisitors.length > VISITOR_PREVIEW_LIMIT;
+            moreVisitorsButtonEl.style.display = hasMoreVisitors && !showAllVisitors ? 'inline-flex' : 'none';
         }
 
         async function refreshVisitorData() {
@@ -990,7 +1376,7 @@
                 ]);
 
                 renderBlockedIps(blockedData.blockedIps || []);
-                renderVisitors(visitorData.visitors || []);
+                renderVisitors(visitorData.visitors || [], true);
                 setVisitorFeedback('Visitor IP data updated.', 'ok');
             } catch (error) {
                 setVisitorFeedback(error.message || 'Could not load visitor IP data.', 'warn');
@@ -1072,7 +1458,9 @@
                 return;
             }
 
-            const version = normalizeReleaseVersion(releaseVersionInputEl.value) || createTimestampVersion();
+            const detectedVersion = extractVersionFromFileName(selectedFile.name);
+            const enteredVersion = normalizeReleaseVersion(releaseVersionInputEl.value);
+            const version = detectedVersion || enteredVersion || createTimestampVersion();
             releaseVersionInputEl.value = version;
 
             publishReleaseButtonEl.disabled = true;
@@ -1114,6 +1502,11 @@
             refreshVisitorData();
         });
 
+        moreVisitorsButtonEl.addEventListener('click', () => {
+            showAllVisitors = true;
+            renderVisitors(cachedVisitors);
+        });
+
         refreshReleaseButtonEl.addEventListener('click', () => {
             refreshReleaseInfo();
         });
@@ -1135,6 +1528,15 @@
         });
 
         releaseFileInputEl.addEventListener('change', () => {
+            const selectedFile = releaseFileInputEl.files?.[0];
+            const detectedVersion = extractVersionFromFileName(selectedFile?.name || '');
+
+            if (detectedVersion) {
+                releaseVersionInputEl.value = detectedVersion;
+                setReleaseFeedback(`Version detected from filename: ${detectedVersion}`, 'ok');
+                return;
+            }
+
             if (!normalizeReleaseVersion(releaseVersionInputEl.value)) {
                 releaseVersionInputEl.value = createTimestampVersion();
             }

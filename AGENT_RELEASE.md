@@ -31,7 +31,9 @@ This writes:
 
 - Login to dashboard as admin.
 - Go to **Agent Release** panel.
-- Enter version, choose `RemoteAgent.exe`, click **Publish Release**.
+- Choose `RemoteAgent_<version>.exe` from `dist` (recommended).
+- Version is auto-detected from filename; you can still edit if needed.
+- Click **Publish Release**.
 - Or click **Publish + Update All** to publish and broadcast update check to all online devices.
 
 ## Update manifest only (external binary host)

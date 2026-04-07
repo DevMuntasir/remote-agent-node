@@ -66,7 +66,51 @@ const allowedOrigins = CLIENT_ORIGIN === '*'
     ? '*'
     : CLIENT_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
 
+const isOriginAllowed = (origin = '') => {
+    if (!origin) {
+        return false;
+    }
+
+    if (allowedOrigins === '*') {
+        return true;
+    }
+
+    return allowedOrigins.includes(origin);
+};
+
 const app = express();
+
+app.use((req, res, next) => {
+    const requestOrigin = req.headers.origin;
+
+    if (!requestOrigin) {
+        next();
+        return;
+    }
+
+    if (allowedOrigins === '*') {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    } else if (isOriginAllowed(requestOrigin)) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+        res.append('Vary', 'Origin');
+    }
+
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        if (allowedOrigins !== '*' && !isOriginAllowed(requestOrigin)) {
+            res.sendStatus(403);
+            return;
+        }
+
+        res.sendStatus(204);
+        return;
+    }
+
+    next();
+});
+
 app.use(express.json());
 
 const server = http.createServer(app);

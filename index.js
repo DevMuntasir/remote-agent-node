@@ -62,28 +62,61 @@ if (hasServiceAccountConfig) {
     console.warn('[auth] Firebase Admin is not fully configured. Dashboard login will fail until service account env vars are set.');
 }
 
+const normalizeOrigin = (value = '') => {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    try {
+        return new URL(trimmed).origin;
+    } catch (error) {
+        return trimmed.replace(/\/+$/, '').toLowerCase();
+    }
+};
+
 const allowedOrigins = CLIENT_ORIGIN === '*'
     ? '*'
-    : CLIENT_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
+    : CLIENT_ORIGIN
+        .split(',')
+        .map((origin) => normalizeOrigin(origin))
+        .filter(Boolean);
+
+const isAllowedOrigin = (origin = '') => {
+    if (allowedOrigins === '*') {
+        return true;
+    }
+
+    if (!origin) {
+        return true;
+    }
+
+    const normalizedOrigin = normalizeOrigin(origin);
+    return allowedOrigins.includes(normalizedOrigin);
+};
 
 const app = express();
 app.use(express.json());
 
 app.use((req, res, next) => {
-    const requestOrigin = req.headers.origin;
-    const allowAnyOrigin = allowedOrigins === '*';
-    const allowedOriginList = Array.isArray(allowedOrigins) ? allowedOrigins : [];
-    const isAllowedOrigin = allowAnyOrigin || (requestOrigin && allowedOriginList.includes(requestOrigin));
+    const requestOrigin = req.headers.origin || '';
 
-    if (isAllowedOrigin) {
-        res.setHeader('Access-Control-Allow-Origin', allowAnyOrigin ? '*' : requestOrigin);
-        res.setHeader('Vary', 'Origin');
+    if (requestOrigin && isAllowedOrigin(requestOrigin)) {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigins === '*' ? '*' : requestOrigin);
+        if (allowedOrigins !== '*') {
+            res.append('Vary', 'Origin');
+        }
     }
 
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
+        if (requestOrigin && !isAllowedOrigin(requestOrigin)) {
+            res.status(403).end();
+            return;
+        }
+
         res.status(204).end();
         return;
     }
@@ -92,11 +125,27 @@ app.use((req, res, next) => {
 });
 
 const server = http.createServer(app);
+
+const socketCorsOrigin = (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+    }
+
+    callback(new Error(`CORS origin denied: ${origin || 'unknown-origin'}`));
+};
+
 const io = new Server(server, {
     cors: {
-        origin: allowedOrigins,
+        origin: socketCorsOrigin,
         methods: ['GET', 'POST']
     }
+});
+
+io.engine.on('connection_error', (error) => {
+    const failingOrigin = error?.req?.headers?.origin || 'unknown-origin';
+    const requestPath = error?.req?.url || '/socket.io';
+    console.warn(`[socket.io] connection_error: ${error.message} | origin=${failingOrigin} | url=${requestPath}`);
 });
 
 const parseBearerToken = (headerValue = '') => {

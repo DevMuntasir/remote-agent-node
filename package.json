@@ -5,11 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "dev:api": "nodemon index.js",
-    "dev:ui": "npm --prefix frontend run dev",
-    "build:ui": "npm --prefix frontend run build",
-    "preview:ui": "npm --prefix frontend run preview"
+    "dev": "nodemon index.js"
   },
   "engines": {
     "node": ">=18"

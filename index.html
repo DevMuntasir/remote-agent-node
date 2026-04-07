@@ -1460,13 +1460,17 @@
 
             const detectedVersion = extractVersionFromFileName(selectedFile.name);
             const enteredVersion = normalizeReleaseVersion(releaseVersionInputEl.value);
-            const version = detectedVersion || enteredVersion || createTimestampVersion();
+            const version = enteredVersion || detectedVersion || createTimestampVersion();
             releaseVersionInputEl.value = version;
 
             publishReleaseButtonEl.disabled = true;
             releaseUpdateAllButtonEl.disabled = true;
 
             try {
+                if (enteredVersion && detectedVersion && enteredVersion !== detectedVersion) {
+                    setReleaseFeedback(`Using typed version ${enteredVersion} (filename had ${detectedVersion}).`, 'pending');
+                }
+
                 setReleaseFeedback(`Uploading ${selectedFile.name} (${Math.ceil(selectedFile.size / (1024 * 1024))} MB)...`, 'pending');
 
                 const response = await adminApiRequest(`/admin/agent/release/upload?version=${encodeURIComponent(version)}`, {
@@ -1569,6 +1573,21 @@
 
             socket.emit(event, { targetId: selectedAgentId });
             setControlFeedback('Command sent. Waiting for device confirmation...', 'pending');
+        }
+
+        function formatControlAction(action = '') {
+            switch (String(action || '')) {
+                case 'start_capture':
+                    return 'Start recording';
+                case 'stop_capture':
+                    return 'Stop recording';
+                case 'start_camera':
+                    return 'Camera on';
+                case 'stop_camera':
+                    return 'Camera off';
+                default:
+                    return 'Command';
+            }
         }
 
         function requestAllAgentsUpdate() {
@@ -1687,6 +1706,32 @@
                 const feedbackType = data.online === false ? 'warn' : 'ok';
                 setControlFeedback(`${recordingText} • ${cameraText}`, feedbackType);
             }
+        });
+
+        socket.on('ui_control_ack', (data = {}) => {
+            const actionLabel = formatControlAction(data.action);
+
+            if (data.ok) {
+                if (data.scope === 'all') {
+                    setControlFeedback(`${actionLabel} command delivered to ${data.sentCount || 0} device(s). Waiting for state update...`, 'pending');
+                    return;
+                }
+
+                setControlFeedback(`${actionLabel} command delivered. Waiting for state update...`, 'pending');
+                return;
+            }
+
+            if (data.reason === 'target-offline') {
+                setControlFeedback('Selected device is offline/disconnected. Please refresh and select an online device.', 'warn');
+                return;
+            }
+
+            if (data.reason === 'no-agents-online') {
+                setControlFeedback('No online device available to receive this command.', 'warn');
+                return;
+            }
+
+            setControlFeedback(`${actionLabel} command was not delivered.`, 'warn');
         });
 
         socket.on('connect', () => {

@@ -1107,7 +1107,7 @@
                 if (['started', 'queued', 'scanning', 'retrying', 'stopping', 'already_running', 'resetting'].includes(stage)) {
                     running = true;
                 }
-                if (['completed', 'failed', 'stopped', 'idle', 'reset'].includes(stage)) {
+                if (['completed', 'failed', 'stopped', 'idle', 'reset', 'paused'].includes(stage)) {
                     running = false;
                 }
             }
@@ -1833,7 +1833,7 @@
             if (['failed'].includes(stage)) {
                 return 'warn';
             }
-            if (['completed', 'idle', 'reset'].includes(stage)) {
+            if (['completed', 'idle', 'reset', 'paused'].includes(stage)) {
                 return 'ok';
             }
             return 'pending';
@@ -1896,9 +1896,6 @@
             const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
             updateRuntimeStateUI();
-            if (selectedAgentId && socket.connected) {
-                requestSelectedImageSyncStatus();
-            }
         }
 
         agentSelect.addEventListener('change', () => {
@@ -1909,9 +1906,6 @@
             setControlFeedback('', '');
             setImageSyncFeedback('', '');
             updateRuntimeStateUI();
-            if (selectedAgentId && socket.connected) {
-                requestSelectedImageSyncStatus();
-            }
         });
 
         socket.on('update_agent_list', (agents) => {
@@ -1983,7 +1977,6 @@
 
         socket.on('connect', () => {
             setStatus(`Connected: ${socket.id}`, 'connected');
-            socket.emit('admin_get_image_sync_status');
         });
 
         socket.on('connect_error', (err) => {

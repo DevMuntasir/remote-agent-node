@@ -66,52 +66,30 @@ const allowedOrigins = CLIENT_ORIGIN === '*'
     ? '*'
     : CLIENT_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);
 
-const isOriginAllowed = (origin = '') => {
-    if (!origin) {
-        return false;
-    }
-
-    if (allowedOrigins === '*') {
-        return true;
-    }
-
-    return allowedOrigins.includes(origin);
-};
-
 const app = express();
+app.use(express.json());
 
 app.use((req, res, next) => {
     const requestOrigin = req.headers.origin;
+    const allowAnyOrigin = allowedOrigins === '*';
+    const allowedOriginList = Array.isArray(allowedOrigins) ? allowedOrigins : [];
+    const isAllowedOrigin = allowAnyOrigin || (requestOrigin && allowedOriginList.includes(requestOrigin));
 
-    if (!requestOrigin) {
-        next();
-        return;
+    if (isAllowedOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', allowAnyOrigin ? '*' : requestOrigin);
+        res.setHeader('Vary', 'Origin');
     }
 
-    if (allowedOrigins === '*') {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-    } else if (isOriginAllowed(requestOrigin)) {
-        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
-        res.append('Vary', 'Origin');
-    }
-
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
-        if (allowedOrigins !== '*' && !isOriginAllowed(requestOrigin)) {
-            res.sendStatus(403);
-            return;
-        }
-
-        res.sendStatus(204);
+        res.status(204).end();
         return;
     }
 
     next();
 });
-
-app.use(express.json());
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -476,7 +454,11 @@ io.use(async (socket, next) => {
 let agents = {};
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.status(200).json({
+        ok: true,
+        service: 'signal-server',
+        message: 'Backend API is running. Use the separate React frontend for dashboard UI.'
+    });
 });
 
 app.get('/health', (req, res) => {

@@ -1,4 +1,25 @@
+# Dependencies
 node_modules/
+
+# Build outputs
+dist/
+frontend/dist/
+
+# Environment files
 .env
 .env.*
 !.env.example
+!frontend/.env.example
+
+# Vercel local project metadata
+.vercel/
+frontend/.vercel/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS junk
+.DS_Store
+Thumbs.db

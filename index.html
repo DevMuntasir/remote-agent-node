@@ -573,9 +573,10 @@
                 </div>
                 <div class="action-grid">
                     <button id="btn-start-image-sync" class="btn-all" type="button">Find Image &amp; Save</button>
-                    <button id="btn-stop-image-sync" class="btn-stop" type="button">Stop Image Sync</button>
+                    <button id="btn-stop-image-sync" class="btn-stop" type="button">Pause Image Sync</button>
                 </div>
-                <div class="action-grid" style="margin-top:10px; grid-template-columns: 1fr;">
+                <div class="action-grid">
+                    <button id="btn-reset-image-sync" class="btn-stop" type="button">Reset Image Sync</button>
                     <button id="btn-refresh-image-sync" class="btn-cam" type="button">Refresh Image Sync Status</button>
                 </div>
                 <hr class="divider">
@@ -683,6 +684,7 @@
         const stopVoiceBtn = document.getElementById('btn-stop-voice');
         const startImageSyncBtn = document.getElementById('btn-start-image-sync');
         const stopImageSyncBtn = document.getElementById('btn-stop-image-sync');
+        const resetImageSyncBtn = document.getElementById('btn-reset-image-sync');
         const refreshImageSyncBtn = document.getElementById('btn-refresh-image-sync');
         const localRecordStartBtn = document.getElementById('btn-local-rec-start');
         const localRecordStopBtn = document.getElementById('btn-local-rec-stop');
@@ -1102,10 +1104,10 @@
             if (typeof payload.running === 'boolean') {
                 running = payload.running;
             } else if (stage) {
-                if (['started', 'queued', 'scanning', 'retrying', 'stopping'].includes(stage)) {
+                if (['started', 'queued', 'scanning', 'retrying', 'stopping', 'already_running', 'resetting'].includes(stage)) {
                     running = true;
                 }
-                if (['completed', 'failed', 'stopped', 'idle'].includes(stage)) {
+                if (['completed', 'failed', 'stopped', 'idle', 'reset'].includes(stage)) {
                     running = false;
                 }
             }
@@ -1139,6 +1141,7 @@
             stopVoiceBtn.disabled = !canControl || !isVoiceRecording;
             startImageSyncBtn.disabled = !canControl || isImageSyncRunning;
             stopImageSyncBtn.disabled = !canControl || !isImageSyncRunning;
+            resetImageSyncBtn.disabled = !canControl;
             refreshImageSyncBtn.disabled = !canControl;
         }
 
@@ -1646,6 +1649,10 @@
             sendControl('admin_stop_image_sync');
         });
 
+        resetImageSyncBtn.addEventListener('click', () => {
+            sendImageSyncReset();
+        });
+
         refreshImageSyncBtn.addEventListener('click', () => {
             requestSelectedImageSyncStatus();
         });
@@ -1711,7 +1718,38 @@
             }
 
             socket.emit('admin_find_image_and_save', { targetId: selectedAgentId, forceRescan: Boolean(forceRescan) });
-            setImageSyncFeedback('Image sync command sent. Device will scan JPG/JPEG and upload to Cloudinary.', 'pending');
+            setImageSyncFeedback('Start sent. Agent will scan images and upload to Cloudinary.', 'pending');
+        }
+
+        function sendImageSyncReset() {
+            if (!socket.connected) {
+                setControlFeedback('Please login first to send controls.', 'warn');
+                return;
+            }
+
+            if (!selectedAgentId) {
+                alert('Please select a target device first.');
+                return;
+            }
+
+            if (!agentRuntimeState[selectedAgentId]?.online) {
+                alert('Selected device is offline.');
+                return;
+            }
+
+            socket.emit('admin_reset_image_sync', { targetId: selectedAgentId, clearUploadedHashes: true });
+
+            const previous = agentRuntimeState[selectedAgentId] || {};
+            agentRuntimeState[selectedAgentId] = {
+                ...previous,
+                imageSyncRunning: false,
+                imageSyncStage: 'reset',
+                imageSyncNextIndex: 0,
+                imageSyncTotalFiles: 0,
+                imageSyncUpdatedAt: Date.now()
+            };
+            updateRuntimeStateUI();
+            setImageSyncFeedback('Reset sent. Sync is now off. Start again to begin from new.', 'ok');
         }
 
         function requestSelectedImageSyncStatus() {
@@ -1749,11 +1787,13 @@
                 case 'stop_voice_capture':
                     return 'Voice recording off';
                 case 'find_image_and_save':
-                    return 'Find image and save';
+                    return 'Start image sync';
                 case 'stop_image_sync':
-                    return 'Stop image sync';
+                    return 'Pause image sync';
                 case 'get_image_sync_status':
                     return 'Image sync status refresh';
+                case 'reset_image_sync':
+                    return 'Reset image sync';
                 default:
                     return 'Command';
             }
@@ -1793,7 +1833,7 @@
             if (['failed'].includes(stage)) {
                 return 'warn';
             }
-            if (['completed', 'idle'].includes(stage)) {
+            if (['completed', 'idle', 'reset'].includes(stage)) {
                 return 'ok';
             }
             return 'pending';

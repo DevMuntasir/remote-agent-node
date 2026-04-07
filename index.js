@@ -939,6 +939,14 @@ io.on('connection', (socket) => {
         emitControlAck('stop_image_sync', result);
     });
 
+    socket.on('admin_reset_image_sync', (payload) => {
+        if (!isAdmin) {
+            return;
+        }
+        const result = emitControl('reset_image_sync', payload);
+        emitControlAck('reset_image_sync', result);
+    });
+
     socket.on('admin_get_image_sync_status', (payload) => {
         if (!isAdmin) {
             return;
@@ -1010,7 +1018,7 @@ io.on('connection', (socket) => {
 
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
         const stage = String(data.stage || '');
-        const isRunning = ['started', 'queued', 'scanning', 'retrying', 'stopping', 'already_running'].includes(stage);
+        const isRunning = ['started', 'queued', 'scanning', 'retrying', 'stopping', 'already_running', 'resetting'].includes(stage);
 
         agents[socket.id] = {
             ...(agents[socket.id] || { id: socket.id, machine: data.machine || agent.machine }),

@@ -22,6 +22,8 @@ const AGENT_BINARY_NAME = process.env.AGENT_BINARY_NAME || 'RemoteAgent.exe';
 const AGENT_MANIFEST_NAME = process.env.AGENT_MANIFEST_NAME || 'latest.json';
 const AGENT_DOWNLOAD_BASE_URL = String(process.env.AGENT_DOWNLOAD_BASE_URL || '').trim().replace(/\/+$/, '');
 const AGENT_BINARY_UPLOAD_LIMIT_MB = Math.max(Number(process.env.AGENT_BINARY_UPLOAD_LIMIT_MB) || 300, 50);
+const AGENT_BINARY_MIN_SIZE_BYTES = Math.max(Number(process.env.AGENT_BINARY_MIN_SIZE_BYTES) || (5 * 1024 * 1024), 1024 * 1024);
+const PYINSTALLER_CARCHIVE_MAGIC = Buffer.from([0x4d, 0x45, 0x49, 0x0c, 0x0b, 0x0a, 0x0b, 0x0e]);
 
 fs.mkdirSync(AGENT_UPDATES_DIR, { recursive: true });
 
@@ -206,6 +208,23 @@ const getAgentManifestPath = () => path.join(AGENT_UPDATES_DIR, AGENT_MANIFEST_N
 const getAgentBinaryPath = () => path.join(AGENT_UPDATES_DIR, AGENT_BINARY_NAME);
 
 const createSha256 = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
+
+const isLikelyPyInstallerOneFileExe = (buffer) => {
+    if (!Buffer.isBuffer(buffer)) {
+        return false;
+    }
+
+    if (buffer.length < AGENT_BINARY_MIN_SIZE_BYTES) {
+        return false;
+    }
+
+    const hasMzHeader = buffer.length >= 2 && buffer[0] === 0x4d && buffer[1] === 0x5a;
+    if (!hasMzHeader) {
+        return false;
+    }
+
+    return buffer.includes(PYINSTALLER_CARCHIVE_MAGIC);
+};
 
 const buildPublicBaseFromRequest = (req) => {
     const protocol = req.protocol || 'https';
@@ -547,6 +566,13 @@ app.put(
 
         if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
             res.status(400).json({ error: 'Binary body is required (application/octet-stream).' });
+            return;
+        }
+
+        if (!isLikelyPyInstallerOneFileExe(req.body)) {
+            res.status(400).json({
+                error: `Uploaded binary looks invalid/corrupted. Please upload fresh dist/RemoteAgent.exe (>= ${Math.ceil(AGENT_BINARY_MIN_SIZE_BYTES / (1024 * 1024))}MB).`
+            });
             return;
         }
 

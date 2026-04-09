@@ -118,13 +118,6 @@
             display: none !important;
         }
 
-        .login-form {
-            max-width: 420px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
         .status-chip {
             display: inline-flex;
             align-items: center;
@@ -222,38 +215,15 @@
     <div class="shell">
         <div>
             <h1>Live Screen Stream</h1>
-            <p>Watch a connected agent's desktop in real-time without waiting for a recording upload.</p>
+            <p>Watch a connected agent's desktop in real-time without waiting for a recording upload. No login required.</p>
         </div>
 
-        <section id="login-view" class="card">
-            <h2>Admin Login</h2>
-            <p>Authenticate with your Firebase email/password to access the stream.</p>
-            <form id="login-form" class="login-form">
-                <div>
-                    <label for="login-email">Email</label>
-                    <input id="login-email" type="email" placeholder="admin@example.com" required autocomplete="username" />
-                </div>
-                <div>
-                    <label for="login-password">Password</label>
-                    <input id="login-password" type="password" placeholder="••••••••" required autocomplete="current-password" />
-                </div>
-                <button type="submit" id="login-submit">Login &amp; Connect</button>
-                <div id="login-feedback" class="feedback">Firebase authentication is required.</div>
-            </form>
-        </section>
-
-        <section id="viewer-view" class="card hidden">
+        <section id="viewer-view" class="card">
             <div class="viewer-grid">
                 <div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-                        <div>
-                            <div class="status-chip" id="connection-status">Connecting...</div>
-                            <div class="feedback" id="control-feedback"></div>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <div id="viewer-user" style="font-size:0.9rem;color:var(--muted);"></div>
-                            <button type="button" class="btn-muted" id="logout-button">Logout</button>
-                        </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
+                        <div class="status-chip" id="connection-status">Connecting...</div>
+                        <div class="feedback" id="control-feedback"></div>
                     </div>
 
                     <div style="margin-top:18px;">

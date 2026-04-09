@@ -7,22 +7,28 @@ const els = {
   agentHelper: document.getElementById('agent-helper'),
   startStream: document.getElementById('start-stream'),
   stopStream: document.getElementById('stop-stream'),
-  preview: document.getElementById('stream-preview'),
+  video: document.getElementById('stream-video'),
   frameTimestamp: document.getElementById('frame-timestamp'),
   metaResolution: document.getElementById('meta-resolution'),
   metaAgent: document.getElementById('meta-agent'),
   metaFrameAge: document.getElementById('meta-frame-age')
 };
 
+const STUN_SERVERS = ['stun:stun.l.google.com:19302'];
+
 const state = {
   socket: null,
   agents: [],
   agentState: {},
   selectedAgentId: '',
-  lastFrameAt: 0
+  lastFrameAt: 0,
+  peerConnection: null,
+  sessionId: ''
 };
 
 const apiBaseUrl = `${window.location.protocol}//${window.location.host}`;
+
+const createSessionId = () => (crypto?.randomUUID ? crypto.randomUUID() : `sess-${Date.now()}-${Math.round(Math.random() * 1e6)}`);
 
 const setStatus = (message, type = '') => {
   els.connectionStatus.textContent = message;
@@ -41,7 +47,7 @@ const setControlFeedback = (message, type = '') => {
 };
 
 const formatAgentOption = (agent) => {
-  const status = agent.screenStreaming ? 'STREAMING' : 'IDLE';
+  const status = agent.screenStreaming ? 'LIVE' : 'IDLE';
   return `${agent.machine} (${agent.id.slice(0, 6)}) • ${status}`;
 };
 
@@ -63,8 +69,7 @@ const updateAgentHelper = () => {
 const updateControlButtons = () => {
   const hasSocket = Boolean(state.socket && state.socket.connected);
   const hasSelection = Boolean(state.selectedAgentId);
-  const selectedState = state.agentState[state.selectedAgentId];
-  const streaming = Boolean(selectedState?.screenStreaming);
+  const streaming = Boolean(state.sessionId);
 
   els.startStream.disabled = !hasSocket || !hasSelection || streaming;
   els.stopStream.disabled = !hasSocket || !hasSelection || !streaming;
@@ -105,7 +110,11 @@ const updateAgentOptions = () => {
 };
 
 const resetPreview = () => {
-  els.preview.src = '';
+  if (els.video.srcObject) {
+    const tracks = els.video.srcObject.getTracks();
+    tracks.forEach((track) => track.stop());
+    els.video.srcObject = null;
+  }
   els.frameTimestamp.textContent = 'Waiting...';
   els.metaResolution.textContent = '—';
   els.metaAgent.textContent = '—';
@@ -132,26 +141,45 @@ const updateFrameAge = () => {
   els.metaFrameAge.textContent = formatAgo(state.lastFrameAt);
 };
 
-const handleStreamFrame = (data = {}) => {
-  if (!data?.image) {
-    return;
+const cleanupPeerConnection = (reason = '') => {
+  if (state.peerConnection) {
+    try {
+      state.peerConnection.ontrack = null;
+      state.peerConnection.onicecandidate = null;
+      state.peerConnection.onconnectionstatechange = null;
+      state.peerConnection.close();
+    } catch (error) {
+      console.warn('Peer cleanup error', error);
+    }
   }
-  if (state.selectedAgentId && data.agentId && data.agentId !== state.selectedAgentId) {
-    return;
+  state.peerConnection = null;
+  state.sessionId = '';
+  resetPreview();
+  updateControlButtons();
+  if (reason) {
+    setControlFeedback(reason, 'warn');
   }
+};
 
-  els.preview.src = `data:image/jpeg;base64,${data.image}`;
-  state.lastFrameAt = Date.now();
-  els.frameTimestamp.textContent = `Last frame: ${new Date(state.lastFrameAt).toLocaleTimeString()}`;
-  if (data.width && data.height) {
-    els.metaResolution.textContent = `${data.width}×${data.height}`;
-  } else {
-    els.metaResolution.textContent = 'Unknown';
+const attachRemoteStream = (event, agentId) => {
+  if (event.streams && event.streams[0]) {
+    els.video.srcObject = event.streams[0];
+    state.lastFrameAt = Date.now();
+    els.frameTimestamp.textContent = `Receiving: ${new Date(state.lastFrameAt).toLocaleTimeString()}`;
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (agent) {
+      els.metaAgent.textContent = `${agent.machine} (${agent.id.slice(0, 6)})`;
+    }
+    const track = event.track;
+    if (track && track.kind === 'video') {
+      track.onunmute = () => {
+        const settings = track.getSettings ? track.getSettings() : {};
+        if (settings.width && settings.height) {
+          els.metaResolution.textContent = `${settings.width}×${settings.height}`;
+        }
+      };
+    }
   }
-  if (data.machine && data.agentId) {
-    els.metaAgent.textContent = `${data.machine} (${data.agentId.slice(0, 6)})`;
-  }
-  updateFrameAge();
 };
 
 const disconnectSocket = () => {
@@ -162,9 +190,8 @@ const disconnectSocket = () => {
     state.socket.disconnect();
     state.socket = null;
   }
+  cleanupPeerConnection('Socket disconnected.');
   setStatus('Disconnected', 'error');
-  resetPreview();
-  updateControlButtons();
 };
 
 const connectSocket = () => {
@@ -196,8 +223,8 @@ const connectSocket = () => {
 
   socket.on('disconnect', (reason) => {
     setStatus(`Disconnected: ${reason}`, 'error');
-    setControlFeedback('Connection lost. Reconnecting...', 'warn');
-    resetPreview();
+    cleanupPeerConnection('Connection lost. Waiting to reconnect...');
+    setControlFeedback('Connection lost. Waiting to reconnect...', 'warn');
     updateControlButtons();
   });
 
@@ -227,27 +254,66 @@ const connectSocket = () => {
     };
     if (data.agentId === state.selectedAgentId) {
       updateAgentHelper();
-      updateControlButtons();
     }
   });
 
-  socket.on('ui_screen_stream_frame', handleStreamFrame);
-
-  socket.on('ui_control_ack', (data = {}) => {
-    if (!['start_screen_stream', 'stop_screen_stream'].includes(data.action)) {
+  socket.on('webrtc_answer', async (data = {}) => {
+    if (!data?.sessionId || data.sessionId !== state.sessionId) {
       return;
     }
-    if (data.ok) {
-      setControlFeedback('Command delivered. Waiting for frames...', 'ok');
-    } else {
-      setControlFeedback('Command failed. Device may be offline.', 'warn');
+    if (!state.peerConnection || !data.answer) {
+      return;
+    }
+    try {
+      await state.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      setControlFeedback('Stream connected. Waiting for frames...', 'ok');
+    } catch (error) {
+      console.error('Failed to set remote description', error);
+      setControlFeedback('Failed to start stream.', 'error');
+      cleanupPeerConnection('Unable to start stream.');
+    }
+  });
+
+  socket.on('webrtc_ice_candidate', async (data = {}) => {
+    if (!data?.sessionId || data.sessionId !== state.sessionId) {
+      return;
+    }
+    if (!state.peerConnection) {
+      return;
+    }
+    const candidate = data.candidate;
+    try {
+      if (!candidate) {
+        await state.peerConnection.addIceCandidate(null);
+        return;
+      }
+      await state.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {
+      console.warn('Failed to add ICE candidate', error);
+    }
+  });
+
+  socket.on('webrtc_status', (data = {}) => {
+    if (!data?.sessionId || data.sessionId !== state.sessionId) {
+      return;
+    }
+    if (data.stage === 'session_closed') {
+      cleanupPeerConnection('Stream closed by remote device.');
+    } else if (data.stage === 'connection_state') {
+      const stateLabel = data.connectionState || 'unknown';
+      if (['failed', 'disconnected'].includes(stateLabel)) {
+        setControlFeedback(`Connection ${stateLabel}.`, 'warn');
+      }
+    } else if (data.stage === 'error') {
+      setControlFeedback(data.message || 'Stream failed.', 'error');
+      cleanupPeerConnection('Stream failed.');
     }
   });
 
   socket.connect();
 };
 
-const startStream = () => {
+const startStream = async () => {
   if (!state.socket || !state.socket.connected) {
     setControlFeedback('Socket offline. Please wait...', 'warn');
     return;
@@ -256,8 +322,59 @@ const startStream = () => {
     setControlFeedback('Select a device first.', 'warn');
     return;
   }
-  state.socket.emit('admin_start_screen_stream', { targetId: state.selectedAgentId });
-  setControlFeedback('Requested live stream start...');
+  if (state.sessionId) {
+    setControlFeedback('A stream is already running.', 'warn');
+    return;
+  }
+
+  const sessionId = createSessionId();
+  const pc = new RTCPeerConnection({ iceServers: STUN_SERVERS.map((url) => ({ urls: url })) });
+  state.peerConnection = pc;
+  state.sessionId = sessionId;
+  updateControlButtons();
+
+  pc.addTransceiver('video', { direction: 'recvonly' });
+
+  pc.ontrack = (event) => attachRemoteStream(event, state.selectedAgentId);
+
+  pc.onicecandidate = (event) => {
+    state.socket?.emit('admin_webrtc_ice_candidate', {
+      targetId: state.selectedAgentId,
+      sessionId,
+      candidate: event.candidate
+        ? {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          }
+        : null
+    });
+  };
+
+  pc.onconnectionstatechange = () => {
+    const connectionState = pc.connectionState;
+    if (connectionState === 'connected') {
+      setControlFeedback('Connected.', 'ok');
+    }
+    if (['failed', 'disconnected', 'closed'].includes(connectionState)) {
+      cleanupPeerConnection(`Connection ${connectionState}.`);
+    }
+  };
+
+  try {
+    const offer = await pc.createOffer({ offerToReceiveVideo: true });
+    await pc.setLocalDescription(offer);
+    state.socket.emit('admin_webrtc_offer', {
+      targetId: state.selectedAgentId,
+      sessionId,
+      offer: pc.localDescription
+    });
+    setControlFeedback('Requesting live stream...', 'ok');
+  } catch (error) {
+    console.error('Failed to start stream', error);
+    setControlFeedback('Failed to start stream.', 'error');
+    cleanupPeerConnection('Unable to create offer.');
+  }
 };
 
 const stopStream = () => {
@@ -265,24 +382,41 @@ const stopStream = () => {
     setControlFeedback('Socket offline. Please wait...', 'warn');
     return;
   }
-  if (!state.selectedAgentId) {
-    setControlFeedback('Select a device first.', 'warn');
+  if (!state.sessionId) {
+    setControlFeedback('No active stream.', 'warn');
     return;
   }
-  state.socket.emit('admin_stop_screen_stream', { targetId: state.selectedAgentId });
-  setControlFeedback('Requested live stream stop...');
+  state.socket.emit('admin_webrtc_stop', {
+    targetId: state.selectedAgentId,
+    sessionId: state.sessionId
+  });
+  cleanupPeerConnection('Stream stopped.');
 };
 
 const handleAgentChange = (event) => {
   state.selectedAgentId = event.target.value;
-  resetPreview();
+  if (state.sessionId) {
+    stopStream();
+  } else {
+    resetPreview();
+  }
   updateAgentHelper();
   updateControlButtons();
 };
 
 els.agentSelect.addEventListener('change', handleAgentChange);
-els.startStream.addEventListener('click', startStream);
-els.stopStream.addEventListener('click', stopStream);
+els.startStream.addEventListener('click', () => {
+  startStream();
+});
+els.stopStream.addEventListener('click', () => {
+  stopStream();
+});
+els.video.addEventListener('timeupdate', () => {
+  if (!els.video.paused && !els.video.ended) {
+    state.lastFrameAt = Date.now();
+    els.frameTimestamp.textContent = `Receiving: ${new Date(state.lastFrameAt).toLocaleTimeString()}`;
+  }
+});
 
 setInterval(updateFrameAge, 1000);
 setStatus('Connecting...');

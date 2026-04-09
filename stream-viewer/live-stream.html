@@ -162,7 +162,7 @@
             gap: 12px;
         }
 
-        .preview-shell img {
+        .preview-shell video {
             width: 100%;
             border-radius: 12px;
             background: #020617;
@@ -215,7 +215,7 @@
     <div class="shell">
         <div>
             <h1>Live Screen Stream</h1>
-            <p>Watch a connected agent's desktop in real-time without waiting for a recording upload. No login required.</p>
+            <p>Watch a connected agent's desktop in real-time using low-latency WebRTC streaming. No login required.</p>
         </div>
 
         <section id="viewer-view" class="card">
@@ -243,7 +243,7 @@
                         <div style="font-weight:600;">Live Preview</div>
                         <div id="frame-timestamp" style="font-size:0.85rem;color:var(--muted);">Waiting...</div>
                     </div>
-                    <img id="stream-preview" alt="Live screen preview" />
+                    <video id="stream-video" autoplay playsinline muted></video>
                     <div class="meta-grid">
                         <div class="meta-card">
                             <strong>Resolution</strong>

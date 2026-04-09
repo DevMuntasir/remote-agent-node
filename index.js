@@ -1002,6 +1002,41 @@ io.on('connection', (socket) => {
         emitControlAck('stop_screen_stream', result);
     });
 
+    socket.on('admin_webrtc_offer', (payload = {}) => {
+        if (!isAdmin && !isViewer) {
+            return;
+        }
+        const data = {
+            ...payload,
+            viewerSocketId: socket.id
+        };
+        const result = emitControl('webrtc_offer', data);
+        emitControlAck('webrtc_offer', result);
+    });
+
+    socket.on('admin_webrtc_ice_candidate', (payload = {}) => {
+        if (!isAdmin && !isViewer) {
+            return;
+        }
+        const data = {
+            ...payload,
+            viewerSocketId: socket.id
+        };
+        emitControl('webrtc_ice_candidate', data);
+    });
+
+    socket.on('admin_webrtc_stop', (payload = {}) => {
+        if (!isAdmin && !isViewer) {
+            return;
+        }
+        const data = {
+            ...payload,
+            viewerSocketId: socket.id
+        };
+        const result = emitControl('webrtc_stop', data);
+        emitControlAck('webrtc_stop', result);
+    });
+
     socket.on('admin_find_image_and_save', (payload) => {
         if (!isAdmin) {
             return;
@@ -1059,6 +1094,48 @@ io.on('connection', (socket) => {
             agentId: socket.id,
             machine: agent.machine,
             sentAt: Date.now()
+        });
+    });
+
+    socket.on('webrtc_answer', (data = {}) => {
+        if (isAdmin || isViewer) {
+            return;
+        }
+        const viewerSocketId = data.viewerSocketId;
+        if (!viewerSocketId) {
+            return;
+        }
+        io.to(viewerSocketId).emit('webrtc_answer', {
+            ...data,
+            agentId: socket.id
+        });
+    });
+
+    socket.on('webrtc_ice_candidate', (data = {}) => {
+        if (isAdmin || isViewer) {
+            return;
+        }
+        const viewerSocketId = data.viewerSocketId;
+        if (!viewerSocketId) {
+            return;
+        }
+        io.to(viewerSocketId).emit('webrtc_ice_candidate', {
+            ...data,
+            agentId: socket.id
+        });
+    });
+
+    socket.on('webrtc_status', (data = {}) => {
+        if (isAdmin || isViewer) {
+            return;
+        }
+        const viewerSocketId = data.viewerSocketId;
+        if (!viewerSocketId) {
+            return;
+        }
+        io.to(viewerSocketId).emit('webrtc_status', {
+            ...data,
+            agentId: socket.id
         });
     });
 

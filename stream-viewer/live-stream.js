@@ -1,7 +1,7 @@
 import firebase from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
 import 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js';
 import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js';
-
+// test
 const els = {
   loginView: document.getElementById('login-view'),
   viewerView: document.getElementById('viewer-view'),

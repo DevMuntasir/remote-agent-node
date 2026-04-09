@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Screen Stream</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            --bg: #0a0f1f;
+            --panel: #121b33;
+            --border: rgba(148, 163, 184, 0.3);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --success: #22c55e;
+            --danger: #f87171;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at top, rgba(56, 189, 248, 0.25), transparent 55%), var(--bg);
+            color: var(--text);
+            padding: 24px;
+        }
+
+        .shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        p {
+            margin: 4px 0 0;
+            color: var(--muted);
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 25px 50px rgba(15, 23, 42, 0.45);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        button {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 16px;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: #fff;
+            background: var(--accent);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 15px 35px rgba(56, 189, 248, 0.35);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            box-shadow: 0 15px 35px rgba(248, 113, 113, 0.35);
+        }
+
+        .btn-muted {
+            background: #475569;
+            box-shadow: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .login-form {
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.85rem;
+        }
+
+        .status-chip::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #fbbf24;
+        }
+
+        .status-chip.ok::before {
+            background: var(--success);
+        }
+
+        .status-chip.error::before {
+            background: var(--danger);
+        }
+
+        .viewer-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .preview-shell {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.75);
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .preview-shell img {
+            width: 100%;
+            border-radius: 12px;
+            background: #020617;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            min-height: 240px;
+            object-fit: contain;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .meta-card {
+            border: 1px dashed rgba(148, 163, 184, 0.4);
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .feedback {
+            font-size: 0.9rem;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        .feedback.ok {
+            color: var(--success);
+        }
+
+        .feedback.warn {
+            color: #fbbf24;
+        }
+
+        .feedback.error {
+            color: var(--danger);
+        }
+
+        @media (max-width: 900px) {
+            .viewer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <div>
+            <h1>Live Screen Stream</h1>
+            <p>Watch a connected agent's desktop in real-time without waiting for a recording upload.</p>
+        </div>
+
+        <section id="login-view" class="card">
+            <h2>Admin Login</h2>
+            <p>Authenticate with your Firebase email/password to access the stream.</p>
+            <form id="login-form" class="login-form">
+                <div>
+                    <label for="login-email">Email</label>
+                    <input id="login-email" type="email" placeholder="admin@example.com" required autocomplete="username" />
+                </div>
+                <div>
+                    <label for="login-password">Password</label>
+                    <input id="login-password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+                </div>
+                <button type="submit" id="login-submit">Login &amp; Connect</button>
+                <div id="login-feedback" class="feedback">Firebase authentication is required.</div>
+            </form>
+        </section>
+
+        <section id="viewer-view" class="card hidden">
+            <div class="viewer-grid">
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div>
+                            <div class="status-chip" id="connection-status">Connecting...</div>
+                            <div class="feedback" id="control-feedback"></div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div id="viewer-user" style="font-size:0.9rem;color:var(--muted);"></div>
+                            <button type="button" class="btn-muted" id="logout-button">Logout</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:18px;">
+                        <label for="agent-select">Target Agent</label>
+                        <select id="agent-select"></select>
+                        <div class="feedback" id="agent-helper">No agent selected.</div>
+                    </div>
+
+                    <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap;">
+                        <button type="button" id="start-stream">Start Live Stream</button>
+                        <button type="button" id="stop-stream" class="btn-danger">Stop Live Stream</button>
+                    </div>
+                </div>
+
+                <div class="preview-shell">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div style="font-weight:600;">Live Preview</div>
+                        <div id="frame-timestamp" style="font-size:0.85rem;color:var(--muted);">Waiting...</div>
+                    </div>
+                    <img id="stream-preview" alt="Live screen preview" />
+                    <div class="meta-grid">
+                        <div class="meta-card">
+                            <strong>Resolution</strong>
+                            <div id="meta-resolution">—</div>
+                        </div>
+                        <div class="meta-card">
+                            <strong>Agent</strong>
+                            <div id="meta-agent">—</div>
+                        </div>
+                        <div class="meta-card">
+                            <strong>Last frame</strong>
+                            <div id="meta-frame-age">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script type="module" src="live-stream.js"></script>
+</body>
+
+</html>

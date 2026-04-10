@@ -505,6 +505,129 @@
             box-shadow: none;
         }
 
+        .directory-browser {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: rgba(15, 23, 42, 0.65);
+        }
+
+        .directory-browser-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .directory-browser-header h3 {
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        .directory-browser-header p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .directory-browser-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-mini {
+            width: auto;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
+        .directory-selected {
+            margin: 12px 0;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        .directory-selected .label {
+            color: var(--muted);
+            margin-right: 6px;
+        }
+
+        .directory-tree {
+            max-height: 260px;
+            overflow-y: auto;
+            border-radius: 10px;
+            border: 1px solid rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.4);
+            margin-bottom: 10px;
+        }
+
+        .directory-tree.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .directory-empty {
+            padding: 16px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .directory-node {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        .directory-node.selected {
+            background: rgba(59, 130, 246, 0.18);
+        }
+
+        .directory-node.loading {
+            opacity: 0.7;
+        }
+
+        .directory-node.empty-children {
+            font-style: italic;
+            color: var(--muted);
+            cursor: default;
+        }
+
+        .directory-toggle {
+            width: 24px;
+            padding: 0;
+            border: none;
+            background: none;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .directory-toggle:disabled {
+            color: #475569;
+            cursor: default;
+        }
+
+        .directory-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .directory-footnote {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
         @media (max-width: 860px) {
             body {
                 padding: 16px;
@@ -592,6 +715,30 @@
                 </div>
                 <div id="control-feedback" class="control-feedback"></div>
                 <div id="image-sync-feedback" class="control-feedback"></div>
+            </div>
+
+            <div class="directory-browser">
+                <div class="directory-browser-header">
+                    <div>
+                        <h3>Image Search Location</h3>
+                        <p>Browse folders on the device and select the exact directory to scan.</p>
+                    </div>
+                    <div class="directory-browser-actions">
+                        <button id="btn-directory-root" class="btn-mini" type="button">Root</button>
+                        <button id="btn-directory-refresh" class="btn-mini" type="button">Refresh</button>
+                    </div>
+                </div>
+                <div class="directory-selected">
+                    <span class="label">Selected:</span>
+                    <span id="directory-selected-path">None</span>
+                </div>
+                <div id="directory-tree" class="directory-tree">
+                    <div class="directory-empty">Select an online device to browse folders.</div>
+                </div>
+                <div id="directory-feedback" class="control-feedback"></div>
+                <div class="directory-footnote">
+                    Allowed file types: <span id="directory-allowed-extensions">.jpg, .jpeg, .png, .webp, .heic</span>
+                </div>
             </div>
 
             <div class="action-group">
@@ -743,6 +890,12 @@
         const refreshReleaseButtonEl = document.getElementById('btn-refresh-release');
         const releaseFeedbackEl = document.getElementById('release-feedback');
         const releaseCurrentEl = document.getElementById('release-current');
+        const directoryTreeContainer = document.getElementById('directory-tree');
+        const directorySelectedPathEl = document.getElementById('directory-selected-path');
+        const directoryFeedbackEl = document.getElementById('directory-feedback');
+        const directoryRootBtn = document.getElementById('btn-directory-root');
+        const directoryRefreshBtn = document.getElementById('btn-directory-refresh');
+        const directoryAllowedExtensionsEl = document.getElementById('directory-allowed-extensions');
 
         if (window.location.protocol === 'file:') {
             statusEl.innerText = 'Open this dashboard via https://remote-agent-node.onrender.com';
@@ -769,6 +922,18 @@
         const VISITOR_PREVIEW_LIMIT = 5;
         let cachedVisitors = [];
         let showAllVisitors = false;
+        const DIRECTORY_ROOT_KEY = '__root__';
+        const directoryTreeState = {
+            agentId: '',
+            nodes: new Map(),
+            rootPaths: [],
+            expandedPaths: new Set(),
+            loadingPaths: new Set(),
+            pendingRequests: new Map(),
+            selectedPath: ''
+        };
+        let directoryRequestCounter = 0;
+        let lastDirectoryAgentId = '';
 
         function setStatus(message, state) {
             statusEl.classList.remove('connected', 'error');
@@ -803,6 +968,295 @@
         function setImageSyncFeedback(message, type = '') {
             imageSyncFeedbackEl.className = `control-feedback ${type}`.trim();
             imageSyncFeedbackEl.innerText = message;
+        }
+
+        function setDirectoryFeedback(message, type = '') {
+            if (!directoryFeedbackEl) {
+                return;
+            }
+            directoryFeedbackEl.className = `control-feedback ${type}`.trim();
+            directoryFeedbackEl.innerText = message;
+        }
+
+        function resetDirectoryTreeState(clearSelection = true, message = 'Select an online device to browse folders.') {
+            directoryTreeState.agentId = selectedAgentId || '';
+            directoryTreeState.nodes = new Map();
+            directoryTreeState.rootPaths = [];
+            directoryTreeState.expandedPaths = new Set();
+            directoryTreeState.loadingPaths = new Set();
+            directoryTreeState.pendingRequests = new Map();
+            if (clearSelection) {
+                directoryTreeState.selectedPath = '';
+                if (directorySelectedPathEl) {
+                    directorySelectedPathEl.innerText = 'None';
+                }
+            }
+            if (directoryTreeContainer) {
+                directoryTreeContainer.innerHTML = `<div class=\"directory-empty\">${message}</div>`;
+            }
+        }
+
+        function createDirectoryNodeFragment(path, depth = 0) {
+            const node = directoryTreeState.nodes.get(path);
+            if (!node) {
+                return null;
+            }
+            const fragment = document.createDocumentFragment();
+            const row = document.createElement('div');
+            row.className = 'directory-node';
+            if (directoryTreeState.selectedPath === path) {
+                row.classList.add('selected');
+            }
+            if (directoryTreeState.loadingPaths.has(path)) {
+                row.classList.add('loading');
+            }
+            row.style.paddingLeft = `${Math.max(0, depth) * 16}px`;
+
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'directory-toggle';
+            const canExpand = node.hasChildren !== false;
+            if (canExpand) {
+                toggle.innerText = directoryTreeState.expandedPaths.has(path) ? '▾' : '▸';
+                toggle.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    handleDirectoryToggle(path);
+                });
+            } else {
+                toggle.innerText = '•';
+                toggle.disabled = true;
+            }
+            row.appendChild(toggle);
+
+            const label = document.createElement('span');
+            label.className = 'directory-name';
+            label.innerText = node.name || node.path;
+            row.appendChild(label);
+
+            row.addEventListener('click', () => {
+                setDirectorySelectedPath(path);
+            });
+
+            fragment.appendChild(row);
+
+            if (directoryTreeState.expandedPaths.has(path) && Array.isArray(node.children) && node.children.length) {
+                node.children.forEach((childPath) => {
+                    const childFragment = createDirectoryNodeFragment(childPath, depth + 1);
+                    if (childFragment) {
+                        fragment.appendChild(childFragment);
+                    }
+                });
+            } else if (directoryTreeState.expandedPaths.has(path) && node.childrenLoaded && (!node.children || node.children.length === 0)) {
+                const emptyRow = document.createElement('div');
+                emptyRow.className = 'directory-node empty-children';
+                emptyRow.style.paddingLeft = `${(depth + 1) * 16}px`;
+                emptyRow.innerText = 'Empty';
+                fragment.appendChild(emptyRow);
+            }
+
+            return fragment;
+        }
+
+        function renderDirectoryTree() {
+            if (!directoryTreeContainer) {
+                return;
+            }
+            directoryTreeContainer.innerHTML = '';
+            if (!directoryTreeState.rootPaths.length) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'directory-empty';
+                placeholder.innerText = directoryTreeState.loadingPaths.has(DIRECTORY_ROOT_KEY)
+                    ? 'Loading directories...'
+                    : 'No folders loaded yet.';
+                directoryTreeContainer.appendChild(placeholder);
+                return;
+            }
+
+            directoryTreeState.rootPaths.forEach((path) => {
+                const fragment = createDirectoryNodeFragment(path, 0);
+                if (fragment) {
+                    directoryTreeContainer.appendChild(fragment);
+                }
+            });
+        }
+
+        function setDirectorySelectedPath(path) {
+            const nextPath = path || '';
+            if (directoryTreeState.selectedPath === nextPath) {
+                return;
+            }
+            directoryTreeState.selectedPath = nextPath;
+            if (directorySelectedPathEl) {
+                directorySelectedPathEl.innerText = nextPath || 'None';
+            }
+            setDirectoryFeedback(nextPath ? `Folder selected: ${nextPath}` : 'Select a folder to enable image sync.', nextPath ? 'ok' : '');
+            renderDirectoryTree();
+            if (selectedAgentId) {
+                const state = agentRuntimeState[selectedAgentId];
+                updateControlButtons(state, Boolean(state?.online));
+            } else {
+                updateControlButtons(null, false);
+            }
+        }
+
+        function handleDirectoryToggle(path) {
+            const node = directoryTreeState.nodes.get(path);
+            if (!node || node.hasChildren === false) {
+                return;
+            }
+
+            if (directoryTreeState.expandedPaths.has(path)) {
+                directoryTreeState.expandedPaths.delete(path);
+                renderDirectoryTree();
+                return;
+            }
+
+            directoryTreeState.expandedPaths.add(path);
+            if (!node.childrenLoaded) {
+                requestDirectoryListing(path);
+            } else {
+                renderDirectoryTree();
+            }
+        }
+
+        function updateDirectoryControls() {
+            const hasDevice = Boolean(selectedAgentId);
+            const isOnline = Boolean(hasDevice && agentRuntimeState[selectedAgentId]?.online);
+            if (directoryRootBtn) {
+                directoryRootBtn.disabled = !isOnline;
+            }
+            if (directoryRefreshBtn) {
+                directoryRefreshBtn.disabled = !isOnline;
+            }
+            if (directoryTreeContainer) {
+                directoryTreeContainer.classList.toggle('disabled', !isOnline);
+            }
+        }
+
+        function updateAllowedExtensionsText(state) {
+            if (!directoryAllowedExtensionsEl) {
+                return;
+            }
+            const extensions = Array.isArray(state?.imageSyncAllowedExtensions)
+                ? state.imageSyncAllowedExtensions
+                : [];
+            directoryAllowedExtensionsEl.innerText = extensions.length
+                ? extensions.join(', ')
+                : '.jpg, .jpeg, .png, .webp, .heic';
+        }
+
+        function requestDirectoryListing(parentPath = '') {
+            if (!socket.connected) {
+                setDirectoryFeedback('Login to browse directories.', 'warn');
+                return;
+            }
+            if (!selectedAgentId) {
+                setDirectoryFeedback('Select a device first.', 'warn');
+                return;
+            }
+            if (!agentRuntimeState[selectedAgentId]?.online) {
+                setDirectoryFeedback('Selected device is offline.', 'warn');
+                return;
+            }
+
+            directoryTreeState.agentId = selectedAgentId;
+            const requestId = `dir_${Date.now()}_${++directoryRequestCounter}`;
+            directoryTreeState.pendingRequests.set(requestId, {
+                parentPath,
+                agentId: selectedAgentId
+            });
+            const loadingKey = parentPath || DIRECTORY_ROOT_KEY;
+            directoryTreeState.loadingPaths.add(loadingKey);
+            if (parentPath === '' && directoryTreeContainer) {
+                directoryTreeContainer.innerHTML = '<div class=\"directory-empty\">Loading directories...</div>';
+            }
+            socket.emit('admin_list_directories', {
+                targetId: selectedAgentId,
+                parentPath,
+                requestId
+            });
+            setDirectoryFeedback('Loading directories...', 'pending');
+        }
+
+        function handleDirectoryListingResponse(data = {}) {
+            const requestId = data.requestId;
+            if (!requestId || !directoryTreeState.pendingRequests.has(requestId)) {
+                return;
+            }
+            const requestInfo = directoryTreeState.pendingRequests.get(requestId);
+            directoryTreeState.pendingRequests.delete(requestId);
+
+            if (requestInfo.agentId !== selectedAgentId) {
+                return;
+            }
+
+            const loadingKey = requestInfo.parentPath || DIRECTORY_ROOT_KEY;
+            directoryTreeState.loadingPaths.delete(loadingKey);
+
+            if (data.error) {
+                setDirectoryFeedback(`Directory listing failed: ${data.error}`, 'warn');
+                if (!requestInfo.parentPath && directoryTreeContainer) {
+                    directoryTreeContainer.innerHTML = '<div class=\"directory-empty\">Failed to load directories.</div>';
+                }
+                return;
+            }
+
+            const entries = Array.isArray(data.entries) ? data.entries : [];
+            if (!requestInfo.parentPath) {
+                directoryTreeState.rootPaths = entries.map((entry) => entry.path);
+                directoryTreeState.expandedPaths.clear();
+            }
+
+            entries.forEach((entry) => {
+                const existingNode = directoryTreeState.nodes.get(entry.path) || {};
+                directoryTreeState.nodes.set(entry.path, {
+                    path: entry.path,
+                    name: entry.name || entry.path,
+                    parentPath: data.normalizedParentPath || requestInfo.parentPath || '',
+                    hasChildren: entry.hasChildren !== false,
+                    children: existingNode.children || [],
+                    childrenLoaded: existingNode.childrenLoaded || false,
+                    type: entry.type || existingNode.type || 'directory'
+                });
+            });
+
+            if (requestInfo.parentPath) {
+                const parentKey = data.normalizedParentPath || requestInfo.parentPath;
+                const parentNode = directoryTreeState.nodes.get(parentKey) || {
+                    path: parentKey,
+                    name: parentKey,
+                    parentPath: '',
+                    hasChildren: true,
+                    children: [],
+                    childrenLoaded: false
+                };
+                parentNode.children = entries.map((entry) => entry.path);
+                parentNode.childrenLoaded = true;
+                directoryTreeState.nodes.set(parentKey, parentNode);
+            }
+
+            renderDirectoryTree();
+
+            if (data.truncated) {
+                setDirectoryFeedback('Showing first set of folders. Expand deeper to refine.', 'warn');
+            } else if (!entries.length) {
+                setDirectoryFeedback('Folder is empty.', '');
+            } else {
+                setDirectoryFeedback('Folders updated.', 'ok');
+            }
+        }
+
+        function ensureDirectoryTreeInitialized() {
+            if (!selectedAgentId) {
+                return;
+            }
+            if (!agentRuntimeState[selectedAgentId]?.online) {
+                setDirectoryFeedback('Selected device is offline.', 'warn');
+                return;
+            }
+            if (!directoryTreeState.rootPaths.length && !directoryTreeState.loadingPaths.has(DIRECTORY_ROOT_KEY)) {
+                requestDirectoryListing('');
+            }
         }
 
         function setPreviewFeedback(message, type = '') {
@@ -1154,6 +1608,10 @@
                 imageSyncStage: stage,
                 imageSyncNextIndex: totalFiles > 0 ? Math.min(nextIndex, totalFiles) : nextIndex,
                 imageSyncTotalFiles: totalFiles,
+                imageSyncScanPath: typeof payload.scanPath === 'string' ? payload.scanPath : (previous.imageSyncScanPath || ''),
+                imageSyncAllowedExtensions: Array.isArray(payload.allowedExtensions)
+                    ? payload.allowedExtensions
+                    : (previous.imageSyncAllowedExtensions || []),
                 imageSyncUpdatedAt: Date.now(),
                 online: previous.online !== false
             };
@@ -1168,6 +1626,7 @@
             const isCameraOn = Boolean(state?.cameraOn);
             const isVoiceRecording = Boolean(state?.voiceRecording);
             const isImageSyncRunning = Boolean(state?.imageSyncRunning);
+            const hasDirectorySelected = Boolean(directoryTreeState.selectedPath);
 
             startRecBtn.disabled = !canControl || isRecording;
             stopRecBtn.disabled = !canControl || !isRecording;
@@ -1175,7 +1634,7 @@
             stopCamBtn.disabled = !canControl || !isCameraOn;
             startVoiceBtn.disabled = !canControl || isVoiceRecording;
             stopVoiceBtn.disabled = !canControl || !isVoiceRecording;
-            startImageSyncBtn.disabled = !canControl || isImageSyncRunning;
+            startImageSyncBtn.disabled = !canControl || isImageSyncRunning || !hasDirectorySelected;
             stopImageSyncBtn.disabled = !canControl || !isImageSyncRunning;
             resetImageSyncBtn.disabled = !canControl;
             refreshImageSyncBtn.disabled = !canControl;
@@ -1188,6 +1647,10 @@
                 setChipState(voiceChip, 'Voice', null);
                 setImageSyncChipState(null, false);
                 updateControlButtons(null, false);
+                updateDirectoryControls();
+                updateAllowedExtensionsText(null);
+                resetDirectoryTreeState(true, 'Select an online device to browse folders.');
+                setDirectoryFeedback('Select a device to load directories.', '');
                 return;
             }
 
@@ -1199,6 +1662,36 @@
             setChipState(voiceChip, 'Voice', isOnline ? state?.voiceRecording : null);
             setImageSyncChipState(state, isOnline);
             updateControlButtons(state, isOnline);
+            updateDirectoryControls();
+            updateAllowedExtensionsText(state);
+            if (isOnline) {
+                ensureDirectoryTreeInitialized();
+            } else {
+                setDirectoryFeedback('Selected device is offline. Directory browser is disabled.', 'warn');
+            }
+        }
+
+        function handleDirectoryAgentChange(previousAgentId) {
+            if (previousAgentId === selectedAgentId) {
+                return;
+            }
+            if (!selectedAgentId) {
+                lastDirectoryAgentId = '';
+                resetDirectoryTreeState(true, 'Select an online device to browse folders.');
+                updateDirectoryControls();
+                setDirectoryFeedback('Select a device to load directories.', '');
+                return;
+            }
+
+            lastDirectoryAgentId = selectedAgentId;
+            const isOnline = Boolean(agentRuntimeState[selectedAgentId]?.online);
+            resetDirectoryTreeState(true, isOnline ? 'Loading directories...' : 'Waiting for device to come online...');
+            updateDirectoryControls();
+            if (isOnline) {
+                requestDirectoryListing('');
+            } else {
+                setDirectoryFeedback('Selected device is offline. Directory browser is disabled.', 'warn');
+            }
         }
 
         cameraShell.addEventListener('dblclick', () => {
@@ -1647,6 +2140,8 @@
         updateRuntimeStateUI();
         setIpControlsEnabled(false);
         setReleaseControlsEnabled(false);
+        resetDirectoryTreeState(true, 'Select an online device to browse folders.');
+        setDirectoryFeedback('Select a device to load directories.', '');
 
         refreshVisitorsButtonEl.addEventListener('click', () => {
             refreshVisitorData();
@@ -1676,6 +2171,21 @@
         releaseUpdateAllButtonEl.addEventListener('click', () => {
             publishRelease(true);
         });
+
+        if (directoryRootBtn) {
+            directoryRootBtn.addEventListener('click', () => {
+                directoryTreeState.expandedPaths.clear();
+                setDirectorySelectedPath('');
+                requestDirectoryListing('');
+            });
+        }
+
+        if (directoryRefreshBtn) {
+            directoryRefreshBtn.addEventListener('click', () => {
+                const targetPath = directoryTreeState.selectedPath || '';
+                requestDirectoryListing(targetPath);
+            });
+        }
 
         startImageSyncBtn.addEventListener('click', () => {
             sendImageSyncStart(false);
@@ -1753,8 +2263,17 @@
                 return;
             }
 
-            socket.emit('admin_find_image_and_save', { targetId: selectedAgentId, forceRescan: Boolean(forceRescan) });
-            setImageSyncFeedback('Start sent. Agent will scan images and upload to Cloudinary.', 'pending');
+            if (!directoryTreeState.selectedPath) {
+                alert('Please select a folder to scan first.');
+                return;
+            }
+
+            socket.emit('admin_find_image_and_save', {
+                targetId: selectedAgentId,
+                forceRescan: Boolean(forceRescan),
+                scanPath: directoryTreeState.selectedPath
+            });
+            setImageSyncFeedback(`Start sent. Agent will scan ${directoryTreeState.selectedPath} and upload to Cloudinary.`, 'pending');
         }
 
         function sendImageSyncReset() {
@@ -1861,8 +2380,9 @@
             const totalFiles = Number(data.totalFiles ?? data.total ?? 0) || 0;
             const nextIndex = Number(data.nextIndex ?? data.index ?? 0) || 0;
             const progressText = totalFiles > 0 ? ` (${Math.min(nextIndex, totalFiles)}/${totalFiles})` : '';
+            const scanPath = data.scanPath ? ` | ${data.scanPath}` : '';
             const filePath = data.filePath ? ` | ${data.filePath}` : '';
-            return `[${machine}] image-sync: ${stage}${progressText}${filePath}`;
+            return `[${machine}] image-sync: ${stage}${progressText}${scanPath}${filePath}`;
         }
 
         function getImageSyncFeedbackType(stage = '') {
@@ -1876,6 +2396,7 @@
         }
 
         function renderAgents(agents) {
+            const previousSelectedId = selectedAgentId;
             const activeIds = new Set(agents.map((agent) => agent.id));
 
             Object.keys(agentRuntimeState).forEach((agentId) => {
@@ -1894,6 +2415,12 @@
                     imageSyncRunning: Boolean(agent.imageSyncRunning),
                     imageSyncNextIndex: Number(agent.imageSyncNextIndex || 0),
                     imageSyncTotalFiles: Number(agent.imageSyncTotalFiles || 0),
+                    imageSyncScanPath: typeof agent.imageSyncScanPath === 'string'
+                        ? agent.imageSyncScanPath
+                        : (previous.imageSyncScanPath || ''),
+                    imageSyncAllowedExtensions: Array.isArray(agent.imageSyncAllowedExtensions)
+                        ? agent.imageSyncAllowedExtensions
+                        : (previous.imageSyncAllowedExtensions || []),
                     online: true,
                     updatedAt: Date.now()
                 };
@@ -1915,6 +2442,7 @@
                 setControlFeedback('No active device connected.', 'warn');
                 setImageSyncFeedback('', '');
                 setCameraImage('');
+                handleDirectoryAgentChange(previousSelectedId);
                 updateRuntimeStateUI();
                 return;
             }
@@ -1931,16 +2459,21 @@
             agentSelect.value = selectedAgentId;
             const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
+            if (selectedAgentId !== previousSelectedId) {
+                handleDirectoryAgentChange(previousSelectedId);
+            }
             updateRuntimeStateUI();
         }
 
         agentSelect.addEventListener('change', () => {
+            const previousSelectedId = selectedAgentId;
             selectedAgentId = agentSelect.value;
             const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
             setCameraImage('');
             setControlFeedback('', '');
             setImageSyncFeedback('', '');
+            handleDirectoryAgentChange(previousSelectedId);
             updateRuntimeStateUI();
         });
 
@@ -2027,6 +2560,7 @@
             updateRuntimeStateUI();
             setControlFeedback('Connection lost. Waiting to reconnect...', 'warn');
             setImageSyncFeedback('Connection lost. Waiting to reconnect...', 'warn');
+            setDirectoryFeedback('Connection lost. Waiting to reconnect...', 'warn');
         });
 
         socket.on('new_video_link', (data) => {
@@ -2073,6 +2607,16 @@
                 const stage = data.running ? 'started' : 'idle';
                 setImageSyncFeedback(formatImageSyncStatusMessage({ ...data, stage }), getImageSyncFeedbackType(stage));
             }
+        });
+
+        socket.on('ui_directory_listing', (data = {}) => {
+            if (data.agentId !== selectedAgentId) {
+                if (data.requestId) {
+                    directoryTreeState.pendingRequests.delete(data.requestId);
+                }
+                return;
+            }
+            handleDirectoryListingResponse(data);
         });
 
         socket.on('ui_update_broadcast_sent', (data = {}) => {

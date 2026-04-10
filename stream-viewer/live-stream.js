@@ -28,6 +28,47 @@ const state = {
 
 const apiBaseUrl = `${window.location.protocol}//${window.location.host}`;
 
+// Play short notification when a new device connects.
+const createAgentJoinTonePlayer = () => {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return () => {};
+  }
+  const context = new AudioContextClass();
+  const unlockEvents = ['click', 'keydown', 'touchstart'];
+  const resumeContext = () => {
+    if (context.state === 'suspended') {
+      context.resume().catch(() => {});
+    }
+  };
+  const handleFirstInteraction = () => {
+    resumeContext();
+  };
+  unlockEvents.forEach((eventName) => {
+    document.addEventListener(eventName, handleFirstInteraction, { once: true });
+  });
+  return () => {
+    resumeContext();
+    try {
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(880, now);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.2, now + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+      oscillator.connect(gainNode).connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.35);
+    } catch (error) {
+      console.warn('Unable to play agent join tone', error);
+    }
+  };
+};
+
+const playAgentJoinTone = createAgentJoinTonePlayer();
+
 const createSessionId = () => (crypto?.randomUUID ? crypto.randomUUID() : `sess-${Date.now()}-${Math.round(Math.random() * 1e6)}`);
 
 const setStatus = (message, type = '') => {
@@ -229,6 +270,7 @@ const connectSocket = () => {
   });
 
   socket.on('update_agent_list', (agents = []) => {
+    const previousAgentIds = new Set(state.agents.map((agent) => agent.id));
     state.agents = agents;
     agents.forEach((agent) => {
       state.agentState[agent.id] = {
@@ -237,6 +279,10 @@ const connectSocket = () => {
         machine: agent.machine
       };
     });
+    const hasNewAgents = agents.some((agent) => !previousAgentIds.has(agent.id));
+    if (hasNewAgents) {
+      playAgentJoinTone();
+    }
     updateAgentOptions();
   });
 

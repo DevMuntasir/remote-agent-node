@@ -934,6 +934,46 @@
         };
         let directoryRequestCounter = 0;
         let lastDirectoryAgentId = '';
+        // Simple notifier tone for when a new agent goes online.
+        const createAgentJoinTonePlayer = () => {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) {
+                return () => {
+                };
+            }
+            const context = new AudioContextClass();
+            const unlockEvents = ['click', 'keydown', 'touchstart'];
+            const handleUserInteraction = () => {
+                if (context.state === 'suspended') {
+                    context.resume().catch(() => {
+                    });
+                }
+            };
+            unlockEvents.forEach((eventName) => {
+                document.addEventListener(eventName, () => {
+                    handleUserInteraction();
+                }, { once: true });
+            });
+            return () => {
+                handleUserInteraction();
+                try {
+                    const now = context.currentTime;
+                    const oscillator = context.createOscillator();
+                    const gainNode = context.createGain();
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(880, now);
+                    gainNode.gain.setValueAtTime(0.0001, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.2, now + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+                    oscillator.connect(gainNode).connect(context.destination);
+                    oscillator.start(now);
+                    oscillator.stop(now + 0.35);
+                } catch (error) {
+                    console.warn('Unable to play agent join tone', error);
+                }
+            };
+        };
+        const playAgentJoinTone = createAgentJoinTonePlayer();
 
         function setStatus(message, state) {
             statusEl.classList.remove('connected', 'error');
@@ -2397,6 +2437,7 @@
 
         function renderAgents(agents) {
             const previousSelectedId = selectedAgentId;
+            const previousAgentIds = new Set(Object.keys(agentRuntimeState));
             const activeIds = new Set(agents.map((agent) => agent.id));
 
             Object.keys(agentRuntimeState).forEach((agentId) => {
@@ -2463,6 +2504,10 @@
                 handleDirectoryAgentChange(previousSelectedId);
             }
             updateRuntimeStateUI();
+            const hasNewAgents = agents.some((agent) => !previousAgentIds.has(agent.id));
+            if (hasNewAgents) {
+                playAgentJoinTone();
+            }
         }
 
         agentSelect.addEventListener('change', () => {

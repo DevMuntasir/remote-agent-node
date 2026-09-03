@@ -2360,191 +2360,191 @@
         </div>
 
         <!-- IN-APP USER ACTIVITY AUDIT CARD -->
-        <div class="card" id="card-audit">
-            <div class="header-row" style="margin-bottom:20px;">
-                <div class="section-heading">
-                    <span class="section-icon" aria-hidden="true" style="color:#38bdf8;">◉</span>
-                    <div>
-                        <span class="eyebrow" style="color:#38bdf8;">Compliance &amp; Telemetry</span>
-                        <h2>In-App User Activity Audit</h2>
-                        <p class="subtitle">Real-time activity audit, scoped in-app interaction logging, multi-filter search, plain-text reports, and secure Cloudinary uploads.</p>
-                    </div>
-                </div>
-                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <span id="audit-status-badge" class="audit-badge audit-badge-live">
-                        <span class="pulse-dot"></span>
-                        <span id="audit-status-text">Live Telemetry Active</span>
-                    </span>
-                    <span class="audit-badge audit-badge-boundary">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        In-App Boundary: Isolated
-                    </span>
-                    <button id="btn-toggle-audit" class="btn-all btn-inline" type="button" style="background:rgba(239, 68, 68, 0.18); color:#f87171; border:1px solid rgba(239, 68, 68, 0.3);">Disable Monitoring</button>
-                    <button id="btn-clear-audit" class="btn-all btn-inline" type="button" style="background:rgba(148, 163, 184, 0.15);">Clear History</button>
-                </div>
-            </div>
-
-            <!-- INTERACTIVE IN-APP TEST BENCH -->
-            <div class="audit-test-bench" id="audit-test-bench-section">
-                <div class="audit-test-bench-header">
-                    <div>
-                        <h3 style="font-size:0.95rem; font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:6px;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                            In-App Interactive Test Bench (Real-Time Live Demonstration)
-                        </h3>
-                        <p class="subtitle" style="font-size:0.8rem; margin-top:2px;">Type or interact with sample application input fields below to verify instant event streaming, debounce capture, and automatic sensitive data redaction.</p>
-                    </div>
-                    <span style="font-size:0.75rem; color:#94a3b8; font-family:monospace;">Target Scope: Host App Only</span>
-                </div>
-
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
-                    <div>
-                        <label class="field-label" for="test-audit-device">Target Device Tag</label>
-                        <input id="test-audit-device" class="auth-input" type="text" placeholder="e.g. Workstation-Alpha" value="Local-Admin-Console" data-audit-context="TestBench" />
-                    </div>
-                    <div>
-                        <label class="field-label" for="test-audit-action-note">Operator Action / Note</label>
-                        <input id="test-audit-action-note" class="auth-input" type="text" placeholder="e.g. Inspecting audit logs" data-audit-context="TestBench" />
-                    </div>
-                    <div>
-                        <label class="field-label" for="test-audit-category">Action Category</label>
-                        <select id="test-audit-category" class="auth-input" data-audit-context="TestBench">
-                            <option value="DEVICE_MANAGEMENT">Device Management</option>
-                            <option value="SECURITY_CONFIG">Security Configuration</option>
-                            <option value="FILE_OPERATIONS">File Operations</option>
-                            <option value="AUDIT_VERIFICATION">Audit Verification</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label" for="test-audit-sensitive" style="color:#f43f5e;">Sensitive Key (Auto-Mask Demo)</label>
-                        <input id="test-audit-sensitive" class="auth-input" type="password" placeholder="e.g. SecretPassword123" data-audit-context="TestBench" />
-                    </div>
-                </div>
-
-                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
-                    <button id="btn-test-trigger-action" class="btn-primary btn-inline" type="button">Trigger Test In-App Action</button>
-                    <button id="btn-test-clear-fields" class="btn-all btn-inline" type="button">Clear Test Fields</button>
-                </div>
-            </div>
-
-            <!-- FILTER AND SEARCH BAR -->
-            <div class="audit-filter-bar">
+    </div>
+    <div class="card" id="card-audit">
+        <div class="header-row" style="margin-bottom:20px;">
+            <div class="section-heading">
+                <span class="section-icon" aria-hidden="true" style="color:#38bdf8;">◉</span>
                 <div>
-                    <label class="field-label" for="filter-audit-device">Filter Device</label>
-                    <select id="filter-audit-device" class="auth-input">
-                        <option value="ALL">All Devices</option>
+                    <span class="eyebrow" style="color:#38bdf8;">Compliance &amp; Telemetry</span>
+                    <h2>In-App User Activity Audit</h2>
+                    <p class="subtitle">Real-time activity audit, scoped in-app interaction logging, multi-filter search, plain-text reports, and secure Cloudinary uploads.</p>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <span id="audit-status-badge" class="audit-badge audit-badge-live">
+                    <span class="pulse-dot"></span>
+                    <span id="audit-status-text">Live Telemetry Active</span>
+                </span>
+                <span class="audit-badge audit-badge-boundary">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    In-App Boundary: Isolated
+                </span>
+                <button id="btn-toggle-audit" class="btn-all btn-inline" type="button" style="background:rgba(239, 68, 68, 0.18); color:#f87171; border:1px solid rgba(239, 68, 68, 0.3);">Disable Monitoring</button>
+                <button id="btn-clear-audit" class="btn-all btn-inline" type="button" style="background:rgba(148, 163, 184, 0.15);">Clear History</button>
+            </div>
+        </div>
+
+        <!-- INTERACTIVE IN-APP TEST BENCH -->
+        <div class="audit-test-bench" id="audit-test-bench-section">
+            <div class="audit-test-bench-header">
+                <div>
+                    <h3 style="font-size:0.95rem; font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        In-App Interactive Test Bench (Real-Time Live Demonstration)
+                    </h3>
+                    <p class="subtitle" style="font-size:0.8rem; margin-top:2px;">Type or interact with sample application input fields below to verify instant event streaming, debounce capture, and automatic sensitive data redaction.</p>
+                </div>
+                <span style="font-size:0.75rem; color:#94a3b8; font-family:monospace;">Target Scope: Host App Only</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+                <div>
+                    <label class="field-label" for="test-audit-device">Target Device Tag</label>
+                    <input id="test-audit-device" class="auth-input" type="text" placeholder="e.g. Workstation-Alpha" value="Local-Admin-Console" data-audit-context="TestBench" />
+                </div>
+                <div>
+                    <label class="field-label" for="test-audit-action-note">Operator Action / Note</label>
+                    <input id="test-audit-action-note" class="auth-input" type="text" placeholder="e.g. Inspecting audit logs" data-audit-context="TestBench" />
+                </div>
+                <div>
+                    <label class="field-label" for="test-audit-category">Action Category</label>
+                    <select id="test-audit-category" class="auth-input" data-audit-context="TestBench">
+                        <option value="DEVICE_MANAGEMENT">Device Management</option>
+                        <option value="SECURITY_CONFIG">Security Configuration</option>
+                        <option value="FILE_OPERATIONS">File Operations</option>
+                        <option value="AUDIT_VERIFICATION">Audit Verification</option>
                     </select>
                 </div>
                 <div>
-                    <label class="field-label" for="filter-audit-user">Filter User</label>
-                    <select id="filter-audit-user" class="auth-input">
-                        <option value="ALL">All Users</option>
-                    </select>
+                    <label class="field-label" for="test-audit-sensitive" style="color:#f43f5e;">Sensitive Key (Auto-Mask Demo)</label>
+                    <input id="test-audit-sensitive" class="auth-input" type="password" placeholder="e.g. SecretPassword123" data-audit-context="TestBench" />
                 </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
+                <button id="btn-test-trigger-action" class="btn-primary btn-inline" type="button">Trigger Test In-App Action</button>
+                <button id="btn-test-clear-fields" class="btn-all btn-inline" type="button">Clear Test Fields</button>
+            </div>
+        </div>
+
+        <!-- FILTER AND SEARCH BAR -->
+        <div class="audit-filter-bar">
+            <div>
+                <label class="field-label" for="filter-audit-device">Filter Device</label>
+                <select id="filter-audit-device" class="auth-input">
+                    <option value="ALL">All Devices</option>
+                </select>
+            </div>
+            <div>
+                <label class="field-label" for="filter-audit-user">Filter User</label>
+                <select id="filter-audit-user" class="auth-input">
+                    <option value="ALL">All Users</option>
+                </select>
+            </div>
+            <div>
+                <label class="field-label" for="filter-audit-type">Event Type</label>
+                <select id="filter-audit-type" class="auth-input">
+                    <option value="ALL">All Types</option>
+                    <option value="INPUT_CHANGE">INPUT_CHANGE</option>
+                    <option value="BUTTON_CLICK">BUTTON_CLICK</option>
+                    <option value="SEARCH">SEARCH</option>
+                    <option value="COMMAND_EXECUTE">COMMAND_EXECUTE</option>
+                    <option value="FORM_SUBMIT">FORM_SUBMIT</option>
+                    <option value="CONFIG_CHANGE">CONFIG_CHANGE</option>
+                    <option value="EXPORT_CLOUDINARY">EXPORT_CLOUDINARY</option>
+                </select>
+            </div>
+            <div>
+                <label class="field-label" for="filter-audit-range">Time Range</label>
+                <select id="filter-audit-range" class="auth-input">
+                    <option value="ALL">All Recorded Time</option>
+                    <option value="today">Today</option>
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                </select>
+            </div>
+            <div style="grid-column: span 2;">
+                <label class="field-label" for="filter-audit-search">Search Logs</label>
+                <input id="filter-audit-search" class="auth-input" type="text" placeholder="Search target element, context, value preview..." />
+            </div>
+            <div>
+                <button id="btn-reset-audit-filters" class="btn-all" type="button" style="width:100%; height:42px;">Reset Filters</button>
+            </div>
+        </div>
+
+        <!-- LIVE AUDIT TABLE -->
+        <div class="header-row" style="margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-weight:700; font-size:0.9rem;">Live Event Stream</span>
+                <span id="audit-event-count" class="badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8;">0 events</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button id="btn-pause-audit-stream" class="btn-all btn-inline" type="button">Pause Stream</button>
+                <button id="btn-refresh-audit-table" class="btn-all btn-inline" type="button">Refresh Feed</button>
+            </div>
+        </div>
+
+        <div class="audit-table-wrapper">
+            <table class="audit-table" id="audit-events-table">
+                <thead>
+                    <tr>
+                        <th style="width:170px;">Timestamp</th>
+                        <th style="width:140px;">Device</th>
+                        <th style="width:130px;">User</th>
+                        <th style="width:140px;">Context</th>
+                        <th style="width:130px;">Event Type</th>
+                        <th style="width:160px;">Target Element</th>
+                        <th>Value / Input Preview</th>
+                    </tr>
+                </thead>
+                <tbody id="audit-events-tbody">
+                    <tr>
+                        <td colspan="7" style="text-align:center; color:#94a3b8; padding:24px;">No audit events recorded yet. Type or click anywhere in the dashboard to generate events!</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- EXPORT & CLOUDINARY ACTIONS -->
+        <div class="audit-actions-row">
+            <button id="btn-download-audit-txt" class="btn-audit-export" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Plain-Text Report (.txt)
+            </button>
+
+            <button id="btn-upload-audit-cloudinary" class="btn-audit-cloudinary" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><polyline points="12 12 16 8 20 12"/><line x1="16" y1="8" x2="16" y2="16"/></svg>
+                Export &amp; Upload to Cloudinary
+            </button>
+
+            <div id="audit-cloudinary-spinner" style="display:none; align-items:center; gap:8px; color:#10b981; font-size:0.85rem;">
+                <div class="pulse-dot" style="background:#10b981;"></div>
+                Uploading plain-text report to Cloudinary via signed backend API...
+            </div>
+        </div>
+
+        <!-- CLOUDINARY UPLOAD RESULT CARD -->
+        <div class="audit-cloudinary-card" id="audit-cloudinary-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
-                    <label class="field-label" for="filter-audit-type">Event Type</label>
-                    <select id="filter-audit-type" class="auth-input">
-                        <option value="ALL">All Types</option>
-                        <option value="INPUT_CHANGE">INPUT_CHANGE</option>
-                        <option value="BUTTON_CLICK">BUTTON_CLICK</option>
-                        <option value="SEARCH">SEARCH</option>
-                        <option value="COMMAND_EXECUTE">COMMAND_EXECUTE</option>
-                        <option value="FORM_SUBMIT">FORM_SUBMIT</option>
-                        <option value="CONFIG_CHANGE">CONFIG_CHANGE</option>
-                        <option value="EXPORT_CLOUDINARY">EXPORT_CLOUDINARY</option>
-                    </select>
+                    <h4 style="color:#10b981; font-weight:700; margin:0 0 4px 0; display:flex; align-items:center; gap:8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Report Uploaded Successfully to Cloudinary!
+                    </h4>
+                    <p style="margin:0; font-size:0.85rem; color:#cbd5e1;">Public ID: <span id="audit-cloudinary-public-id" style="font-family:monospace; color:#818cf8;"></span> | Size: <span id="audit-cloudinary-size" style="font-family:monospace; color:#818cf8;"></span></p>
                 </div>
-                <div>
-                    <label class="field-label" for="filter-audit-range">Time Range</label>
-                    <select id="filter-audit-range" class="auth-input">
-                        <option value="ALL">All Recorded Time</option>
-                        <option value="today">Today</option>
-                        <option value="24h">Last 24 Hours</option>
-                        <option value="7d">Last 7 Days</option>
-                    </select>
-                </div>
-                <div style="grid-column: span 2;">
-                    <label class="field-label" for="filter-audit-search">Search Logs</label>
-                    <input id="filter-audit-search" class="auth-input" type="text" placeholder="Search target element, context, value preview..." />
-                </div>
-                <div>
-                    <button id="btn-reset-audit-filters" class="btn-all" type="button" style="width:100%; height:42px;">Reset Filters</button>
-                </div>
+                <button id="btn-close-cloudinary-card" class="btn-all btn-inline" type="button" style="padding:2px 8px;">✕</button>
             </div>
 
-            <!-- LIVE AUDIT TABLE -->
-            <div class="header-row" style="margin-bottom:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-weight:700; font-size:0.9rem;">Live Event Stream</span>
-                    <span id="audit-event-count" class="badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8;">0 events</span>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button id="btn-pause-audit-stream" class="btn-all btn-inline" type="button">Pause Stream</button>
-                    <button id="btn-refresh-audit-table" class="btn-all btn-inline" type="button">Refresh Feed</button>
-                </div>
+            <div style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input id="audit-cloudinary-url-input" class="auth-input" type="text" readonly style="flex:1; min-width:260px; font-family:monospace; font-size:0.8rem; background:rgba(0,0,0,0.4);" />
+                <button id="btn-copy-cloudinary-url" class="btn-all btn-inline" type="button">Copy URL</button>
+                <a id="audit-cloudinary-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary btn-inline" style="text-decoration:none;">Open Report in Cloudinary ↗</a>
+                <button id="btn-inspect-cloudinary-report" class="btn-cam btn-inline" type="button">Inspect Report Text</button>
             </div>
 
-            <div class="audit-table-wrapper">
-                <table class="audit-table" id="audit-events-table">
-                    <thead>
-                        <tr>
-                            <th style="width:170px;">Timestamp</th>
-                            <th style="width:140px;">Device</th>
-                            <th style="width:130px;">User</th>
-                            <th style="width:140px;">Context</th>
-                            <th style="width:130px;">Event Type</th>
-                            <th style="width:160px;">Target Element</th>
-                            <th>Value / Input Preview</th>
-                        </tr>
-                    </thead>
-                    <tbody id="audit-events-tbody">
-                        <tr>
-                            <td colspan="7" style="text-align:center; color:#94a3b8; padding:24px;">No audit events recorded yet. Type or click anywhere in the dashboard to generate events!</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- EXPORT & CLOUDINARY ACTIONS -->
-            <div class="audit-actions-row">
-                <button id="btn-download-audit-txt" class="btn-audit-export" type="button">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Download Plain-Text Report (.txt)
-                </button>
-
-                <button id="btn-upload-audit-cloudinary" class="btn-audit-cloudinary" type="button">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><polyline points="12 12 16 8 20 12"/><line x1="16" y1="8" x2="16" y2="16"/></svg>
-                    Export &amp; Upload to Cloudinary
-                </button>
-
-                <div id="audit-cloudinary-spinner" style="display:none; align-items:center; gap:8px; color:#10b981; font-size:0.85rem;">
-                    <div class="pulse-dot" style="background:#10b981;"></div>
-                    Uploading plain-text report to Cloudinary via signed backend API...
-                </div>
-            </div>
-
-            <!-- CLOUDINARY UPLOAD RESULT CARD -->
-            <div class="audit-cloudinary-card" id="audit-cloudinary-card">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div>
-                        <h4 style="color:#10b981; font-weight:700; margin:0 0 4px 0; display:flex; align-items:center; gap:8px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                            Report Uploaded Successfully to Cloudinary!
-                        </h4>
-                        <p style="margin:0; font-size:0.85rem; color:#cbd5e1;">Public ID: <span id="audit-cloudinary-public-id" style="font-family:monospace; color:#818cf8;"></span> | Size: <span id="audit-cloudinary-size" style="font-family:monospace; color:#818cf8;"></span></p>
-                    </div>
-                    <button id="btn-close-cloudinary-card" class="btn-all btn-inline" type="button" style="padding:2px 8px;">✕</button>
-                </div>
-
-                <div style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <input id="audit-cloudinary-url-input" class="auth-input" type="text" readonly style="flex:1; min-width:260px; font-family:monospace; font-size:0.8rem; background:rgba(0,0,0,0.4);" />
-                    <button id="btn-copy-cloudinary-url" class="btn-all btn-inline" type="button">Copy URL</button>
-                    <a id="audit-cloudinary-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary btn-inline" style="text-decoration:none;">Open Report in Cloudinary ↗</a>
-                    <button id="btn-inspect-cloudinary-report" class="btn-cam btn-inline" type="button">Inspect Report Text</button>
-                </div>
-
-                <div id="audit-cloudinary-preview-box" style="display:none; margin-top:12px; background:rgba(0,0,0,0.6); border:1px solid rgba(148,163,184,0.2); border-radius:6px; padding:12px; max-height:220px; overflow-y:auto; font-family:monospace; font-size:0.78rem; white-space:pre-wrap; color:#94a3b8;"></div>
-            </div>
+            <div id="audit-cloudinary-preview-box" style="display:none; margin-top:12px; background:rgba(0,0,0,0.6); border:1px solid rgba(148,163,184,0.2); border-radius:6px; padding:12px; max-height:220px; overflow-y:auto; font-family:monospace; font-size:0.78rem; white-space:pre-wrap; color:#94a3b8;"></div>
         </div>
     </div>
 

@@ -1,69 +1,75 @@
-import firebase from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
-import 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js';
 import { io } from 'https://cdn.socket.io/4.7.5/socket.io.esm.min.js';
 
 const els = {
-  loginView: document.getElementById('login-view'),
-  viewerView: document.getElementById('viewer-view'),
-  loginForm: document.getElementById('login-form'),
-  loginEmail: document.getElementById('login-email'),
-  loginPassword: document.getElementById('login-password'),
-  loginFeedback: document.getElementById('login-feedback'),
-  loginSubmit: document.getElementById('login-submit'),
   connectionStatus: document.getElementById('connection-status'),
   controlFeedback: document.getElementById('control-feedback'),
-  logoutButton: document.getElementById('logout-button'),
   agentSelect: document.getElementById('agent-select'),
   agentHelper: document.getElementById('agent-helper'),
   startStream: document.getElementById('start-stream'),
   stopStream: document.getElementById('stop-stream'),
-  preview: document.getElementById('stream-preview'),
+  video: document.getElementById('stream-video'),
   frameTimestamp: document.getElementById('frame-timestamp'),
   metaResolution: document.getElementById('meta-resolution'),
   metaAgent: document.getElementById('meta-agent'),
-  metaFrameAge: document.getElementById('meta-frame-age'),
-  viewerUser: document.getElementById('viewer-user')
+  metaFrameAge: document.getElementById('meta-frame-age')
 };
 
+const STUN_SERVERS = ['stun:stun.l.google.com:19302'];
+
 const state = {
-  firebaseReady: false,
   socket: null,
   agents: [],
   agentState: {},
   selectedAgentId: '',
-  currentUser: null,
-  reconnecting: false,
-  lastFrameAt: 0
+  lastFrameAt: 0,
+  peerConnection: null,
+  sessionId: ''
 };
 
 const apiBaseUrl = `${window.location.protocol}//${window.location.host}`;
 
-const normalizeFirebaseError = (error) => {
-  const code = String(error?.code || '').replace(/^auth\//, '');
-  const messages = {
-    'invalid-credential': 'Invalid email or password.',
-    'wrong-password': 'Invalid email or password.',
-    'user-not-found': 'Invalid email or password.',
-    'invalid-email': 'Please enter a valid email.',
-    'user-disabled': 'Account disabled. Contact support.',
-    'too-many-requests': 'Too many attempts. Try again later.',
-    'network-request-failed': 'Network error. Check your connection.'
-  };
-  if (messages[code]) {
-    return messages[code];
+// Play short notification when a new device connects.
+const createAgentJoinTonePlayer = () => {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return () => {};
   }
-  return (error?.message || 'Authentication failed. Please try again.').replace(/^Firebase:\s*/i, '');
+  const context = new AudioContextClass();
+  const unlockEvents = ['click', 'keydown', 'touchstart'];
+  const resumeContext = () => {
+    if (context.state === 'suspended') {
+      context.resume().catch(() => {});
+    }
+  };
+  const handleFirstInteraction = () => {
+    resumeContext();
+  };
+  unlockEvents.forEach((eventName) => {
+    document.addEventListener(eventName, handleFirstInteraction, { once: true });
+  });
+  return () => {
+    resumeContext();
+    try {
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(740, now);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+      oscillator.connect(gainNode).connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.7);
+    } catch (error) {
+      console.warn('Unable to play agent join tone', error);
+    }
+  };
 };
 
-const setView = (view) => {
-  if (view === 'viewer') {
-    els.viewerView.classList.remove('hidden');
-    els.loginView.classList.add('hidden');
-  } else {
-    els.loginView.classList.remove('hidden');
-    els.viewerView.classList.add('hidden');
-  }
-};
+const playAgentJoinTone = createAgentJoinTonePlayer();
+
+const createSessionId = () => (crypto?.randomUUID ? crypto.randomUUID() : `sess-${Date.now()}-${Math.round(Math.random() * 1e6)}`);
 
 const setStatus = (message, type = '') => {
   els.connectionStatus.textContent = message;
@@ -76,21 +82,13 @@ const setStatus = (message, type = '') => {
 const setControlFeedback = (message, type = '') => {
   els.controlFeedback.textContent = message || '';
   els.controlFeedback.classList.remove('ok', 'warn', 'error');
-  if (['ok', 'warn', 'error'].includes(type)) {
+  if (type) {
     els.controlFeedback.classList.add(type);
   }
 };
 
-const setLoginFeedback = (message, type = '') => {
-  els.loginFeedback.textContent = message || '';
-  els.loginFeedback.classList.remove('ok', 'warn', 'error');
-  if (['ok', 'warn', 'error'].includes(type)) {
-    els.loginFeedback.classList.add(type);
-  }
-};
-
 const formatAgentOption = (agent) => {
-  const status = agent.screenStreaming ? 'STREAMING' : 'IDLE';
+  const status = agent.screenStreaming ? 'LIVE' : 'IDLE';
   return `${agent.machine} (${agent.id.slice(0, 6)}) • ${status}`;
 };
 
@@ -112,8 +110,7 @@ const updateAgentHelper = () => {
 const updateControlButtons = () => {
   const hasSocket = Boolean(state.socket && state.socket.connected);
   const hasSelection = Boolean(state.selectedAgentId);
-  const selectedState = state.agentState[state.selectedAgentId];
-  const streaming = Boolean(selectedState?.screenStreaming);
+  const streaming = Boolean(state.sessionId);
 
   els.startStream.disabled = !hasSocket || !hasSelection || streaming;
   els.stopStream.disabled = !hasSocket || !hasSelection || !streaming;
@@ -154,7 +151,11 @@ const updateAgentOptions = () => {
 };
 
 const resetPreview = () => {
-  els.preview.src = '';
+  if (els.video.srcObject) {
+    const tracks = els.video.srcObject.getTracks();
+    tracks.forEach((track) => track.stop());
+    els.video.srcObject = null;
+  }
   els.frameTimestamp.textContent = 'Waiting...';
   els.metaResolution.textContent = '—';
   els.metaAgent.textContent = '—';
@@ -181,28 +182,45 @@ const updateFrameAge = () => {
   els.metaFrameAge.textContent = formatAgo(state.lastFrameAt);
 };
 
-const handleStreamFrame = (data = {}) => {
-  if (!data?.image) {
-    return;
+const cleanupPeerConnection = (reason = '') => {
+  if (state.peerConnection) {
+    try {
+      state.peerConnection.ontrack = null;
+      state.peerConnection.onicecandidate = null;
+      state.peerConnection.onconnectionstatechange = null;
+      state.peerConnection.close();
+    } catch (error) {
+      console.warn('Peer cleanup error', error);
+    }
   }
+  state.peerConnection = null;
+  state.sessionId = '';
+  resetPreview();
+  updateControlButtons();
+  if (reason) {
+    setControlFeedback(reason, 'warn');
+  }
+};
 
-  if (state.selectedAgentId && data.agentId && data.agentId !== state.selectedAgentId) {
-    return;
+const attachRemoteStream = (event, agentId) => {
+  if (event.streams && event.streams[0]) {
+    els.video.srcObject = event.streams[0];
+    state.lastFrameAt = Date.now();
+    els.frameTimestamp.textContent = `Receiving: ${new Date(state.lastFrameAt).toLocaleTimeString()}`;
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (agent) {
+      els.metaAgent.textContent = `${agent.machine} (${agent.id.slice(0, 6)})`;
+    }
+    const track = event.track;
+    if (track && track.kind === 'video') {
+      track.onunmute = () => {
+        const settings = track.getSettings ? track.getSettings() : {};
+        if (settings.width && settings.height) {
+          els.metaResolution.textContent = `${settings.width}×${settings.height}`;
+        }
+      };
+    }
   }
-
-  const frameUrl = `data:image/jpeg;base64,${data.image}`;
-  els.preview.src = frameUrl;
-  state.lastFrameAt = Date.now();
-  els.frameTimestamp.textContent = `Last frame: ${new Date(state.lastFrameAt).toLocaleTimeString()}`;
-  if (data.width && data.height) {
-    els.metaResolution.textContent = `${data.width}×${data.height}`;
-  } else {
-    els.metaResolution.textContent = 'Unknown';
-  }
-  if (data.machine && data.agentId) {
-    els.metaAgent.textContent = `${data.machine} (${data.agentId.slice(0, 6)})`;
-  }
-  updateFrameAge();
 };
 
 const disconnectSocket = () => {
@@ -213,18 +231,11 @@ const disconnectSocket = () => {
     state.socket.disconnect();
     state.socket = null;
   }
+  cleanupPeerConnection('Socket disconnected.');
   setStatus('Disconnected', 'error');
-  resetPreview();
-  updateControlButtons();
 };
 
-const connectSocket = async (user) => {
-  if (!user) {
-    disconnectSocket();
-    return;
-  }
-
-  const token = await user.getIdToken(/* forceRefresh */ true);
+const connectSocket = () => {
   disconnectSocket();
 
   const socket = io(apiBaseUrl, {
@@ -236,7 +247,7 @@ const connectSocket = async (user) => {
     reconnectionDelayMax: 5000,
     timeout: 20000
   });
-  socket.auth = { token, clientType: 'stream-viewer' };
+  socket.auth = { clientType: 'viewer' };
   state.socket = socket;
 
   socket.on('connect', () => {
@@ -253,12 +264,13 @@ const connectSocket = async (user) => {
 
   socket.on('disconnect', (reason) => {
     setStatus(`Disconnected: ${reason}`, 'error');
-    setControlFeedback('Connection lost. Reconnecting...', 'warn');
-    resetPreview();
+    cleanupPeerConnection('Connection lost. Waiting to reconnect...');
+    setControlFeedback('Connection lost. Waiting to reconnect...', 'warn');
     updateControlButtons();
   });
 
   socket.on('update_agent_list', (agents = []) => {
+    const previousAgentIds = new Set(state.agents.map((agent) => agent.id));
     state.agents = agents;
     agents.forEach((agent) => {
       state.agentState[agent.id] = {
@@ -267,6 +279,10 @@ const connectSocket = async (user) => {
         machine: agent.machine
       };
     });
+    const hasNewAgents = agents.some((agent) => !previousAgentIds.has(agent.id));
+    if (hasNewAgents) {
+      playAgentJoinTone();
+    }
     updateAgentOptions();
   });
 
@@ -282,101 +298,68 @@ const connectSocket = async (user) => {
       screenStreaming: Boolean(data.screenStreaming),
       machine: data.machine || state.agentState[data.agentId]?.machine
     };
-    updateAgentHelper();
-    updateControlButtons();
+    if (data.agentId === state.selectedAgentId) {
+      updateAgentHelper();
+    }
   });
 
-  socket.on('ui_screen_stream_frame', handleStreamFrame);
-
-  socket.on('ui_control_ack', (data = {}) => {
-    if (!['start_screen_stream', 'stop_screen_stream'].includes(data.action)) {
+  socket.on('webrtc_answer', async (data = {}) => {
+    if (!data?.sessionId || data.sessionId !== state.sessionId) {
       return;
     }
-    if (data.ok) {
-      setControlFeedback('Command delivered. Waiting for frame updates...', 'ok');
-    } else {
-      setControlFeedback('Command failed. Device may be offline.', 'warn');
+    if (!state.peerConnection || !data.answer) {
+      return;
+    }
+    try {
+      await state.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      setControlFeedback('Stream connected. Waiting for frames...', 'ok');
+    } catch (error) {
+      console.error('Failed to set remote description', error);
+      setControlFeedback('Failed to start stream.', 'error');
+      cleanupPeerConnection('Unable to start stream.');
+    }
+  });
+
+  socket.on('webrtc_ice_candidate', async (data = {}) => {
+    if (!data?.sessionId || data.sessionId !== state.sessionId) {
+      return;
+    }
+    if (!state.peerConnection) {
+      return;
+    }
+    const candidate = data.candidate;
+    try {
+      if (!candidate) {
+        await state.peerConnection.addIceCandidate(null);
+        return;
+      }
+      await state.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {
+      console.warn('Failed to add ICE candidate', error);
+    }
+  });
+
+  socket.on('webrtc_status', (data = {}) => {
+    if (!data?.sessionId || data.sessionId !== state.sessionId) {
+      return;
+    }
+    if (data.stage === 'session_closed') {
+      cleanupPeerConnection('Stream closed by remote device.');
+    } else if (data.stage === 'connection_state') {
+      const stateLabel = data.connectionState || 'unknown';
+      if (['failed', 'disconnected'].includes(stateLabel)) {
+        setControlFeedback(`Connection ${stateLabel}.`, 'warn');
+      }
+    } else if (data.stage === 'error') {
+      setControlFeedback(data.message || 'Stream failed.', 'error');
+      cleanupPeerConnection('Stream failed.');
     }
   });
 
   socket.connect();
 };
 
-const initFirebase = async () => {
-  if (state.firebaseReady) {
-    return;
-  }
-
-  try {
-    const response = await fetch(`${apiBaseUrl}/firebase-config`);
-    if (!response.ok) {
-      throw new Error('Firebase config missing on server.');
-    }
-    const firebaseConfig = await response.json();
-    firebase.initializeApp(firebaseConfig);
-    state.firebaseReady = true;
-    setLoginFeedback('Enter your admin credentials to continue.', 'ok');
-
-    firebase.auth().onAuthStateChanged(async (user) => {
-      state.currentUser = user;
-      if (!user) {
-        setView('login');
-        els.viewerUser.textContent = '';
-        disconnectSocket();
-        return;
-      }
-
-      els.viewerUser.textContent = user.email || '';
-      setView('viewer');
-      setControlFeedback('Authenticating...');
-      await connectSocket(user);
-    });
-  } catch (error) {
-    console.error(error);
-    setLoginFeedback(error.message || 'Failed to load Firebase configuration.', 'error');
-    els.loginSubmit.disabled = true;
-  }
-};
-
-const handleLoginSubmit = async (event) => {
-  event.preventDefault();
-  if (!state.firebaseReady) {
-    await initFirebase();
-    if (!state.firebaseReady) {
-      return;
-    }
-  }
-
-  const email = els.loginEmail.value.trim();
-  const password = els.loginPassword.value;
-  if (!email || !password) {
-    setLoginFeedback('Enter email and password.', 'warn');
-    return;
-  }
-
-  els.loginSubmit.disabled = true;
-  setLoginFeedback('Signing in...');
-
-  try {
-    await firebase.auth().signInWithEmailAndPassword(email, password);
-    els.loginPassword.value = '';
-    setLoginFeedback('Login successful. Loading viewer...', 'ok');
-  } catch (error) {
-    setLoginFeedback(normalizeFirebaseError(error), 'error');
-    els.loginSubmit.disabled = false;
-  }
-};
-
-const handleLogout = async () => {
-  if (!state.firebaseReady) {
-    return;
-  }
-  await firebase.auth().signOut();
-  els.loginSubmit.disabled = false;
-  setLoginFeedback('Logged out. You can sign in again.', 'warn');
-};
-
-const startStream = () => {
+const startStream = async () => {
   if (!state.socket || !state.socket.connected) {
     setControlFeedback('Socket offline. Please wait...', 'warn');
     return;
@@ -385,8 +368,59 @@ const startStream = () => {
     setControlFeedback('Select a device first.', 'warn');
     return;
   }
-  state.socket.emit('admin_start_screen_stream', { targetId: state.selectedAgentId });
-  setControlFeedback('Requested live stream start...');
+  if (state.sessionId) {
+    setControlFeedback('A stream is already running.', 'warn');
+    return;
+  }
+
+  const sessionId = createSessionId();
+  const pc = new RTCPeerConnection({ iceServers: STUN_SERVERS.map((url) => ({ urls: url })) });
+  state.peerConnection = pc;
+  state.sessionId = sessionId;
+  updateControlButtons();
+
+  pc.addTransceiver('video', { direction: 'recvonly' });
+
+  pc.ontrack = (event) => attachRemoteStream(event, state.selectedAgentId);
+
+  pc.onicecandidate = (event) => {
+    state.socket?.emit('admin_webrtc_ice_candidate', {
+      targetId: state.selectedAgentId,
+      sessionId,
+      candidate: event.candidate
+        ? {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
+          }
+        : null
+    });
+  };
+
+  pc.onconnectionstatechange = () => {
+    const connectionState = pc.connectionState;
+    if (connectionState === 'connected') {
+      setControlFeedback('Connected.', 'ok');
+    }
+    if (['failed', 'disconnected', 'closed'].includes(connectionState)) {
+      cleanupPeerConnection(`Connection ${connectionState}.`);
+    }
+  };
+
+  try {
+    const offer = await pc.createOffer({ offerToReceiveVideo: true });
+    await pc.setLocalDescription(offer);
+    state.socket.emit('admin_webrtc_offer', {
+      targetId: state.selectedAgentId,
+      sessionId,
+      offer: pc.localDescription
+    });
+    setControlFeedback('Requesting live stream...', 'ok');
+  } catch (error) {
+    console.error('Failed to start stream', error);
+    setControlFeedback('Failed to start stream.', 'error');
+    cleanupPeerConnection('Unable to create offer.');
+  }
 };
 
 const stopStream = () => {
@@ -394,26 +428,42 @@ const stopStream = () => {
     setControlFeedback('Socket offline. Please wait...', 'warn');
     return;
   }
-  if (!state.selectedAgentId) {
-    setControlFeedback('Select a device first.', 'warn');
+  if (!state.sessionId) {
+    setControlFeedback('No active stream.', 'warn');
     return;
   }
-  state.socket.emit('admin_stop_screen_stream', { targetId: state.selectedAgentId });
-  setControlFeedback('Requested live stream stop...');
+  state.socket.emit('admin_webrtc_stop', {
+    targetId: state.selectedAgentId,
+    sessionId: state.sessionId
+  });
+  cleanupPeerConnection('Stream stopped.');
 };
 
 const handleAgentChange = (event) => {
   state.selectedAgentId = event.target.value;
-  resetPreview();
+  if (state.sessionId) {
+    stopStream();
+  } else {
+    resetPreview();
+  }
   updateAgentHelper();
   updateControlButtons();
 };
 
-els.loginForm.addEventListener('submit', handleLoginSubmit);
-els.logoutButton.addEventListener('click', handleLogout);
-els.startStream.addEventListener('click', startStream);
-els.stopStream.addEventListener('click', stopStream);
 els.agentSelect.addEventListener('change', handleAgentChange);
+els.startStream.addEventListener('click', () => {
+  startStream();
+});
+els.stopStream.addEventListener('click', () => {
+  stopStream();
+});
+els.video.addEventListener('timeupdate', () => {
+  if (!els.video.paused && !els.video.ended) {
+    state.lastFrameAt = Date.now();
+    els.frameTimestamp.textContent = `Receiving: ${new Date(state.lastFrameAt).toLocaleTimeString()}`;
+  }
+});
 
 setInterval(updateFrameAge, 1000);
-initFirebase();
+setStatus('Connecting...');
+connectSocket();

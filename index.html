@@ -345,7 +345,7 @@
         }
 
         #video-list.empty::before {
-            content: 'No uploads yet. New video, audio and image links appear here.';
+            content: 'No recordings yet. New videos appear here automatically.';
             display: block;
             color: var(--muted);
             padding: 14px;
@@ -503,14 +503,1521 @@
                 width: 100%;
             }
         }
+    
+        /* --- Extended Remote Management Styles --- */
+
+        /* --- Image Preview & Explorer Extensions --- */
+        .breadcrumb-bar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        .breadcrumb-chip {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .breadcrumb-chip:hover {
+            background: var(--surface-strong);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .breadcrumb-sep {
+            color: var(--muted);
+            font-size: 11px;
+            user-select: none;
+        }
+        .badge-type {
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+        .badge-img {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .badge-vid {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .badge-aud {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .badge-doc {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .btn-view {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+            margin-right: 6px;
+        }
+        .btn-view:hover {
+            background: #10b981;
+            color: #fff;
+        }
+        .preview-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .preview-modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .preview-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-strong);
+        }
+        .preview-modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 60vw;
+        }
+        .preview-modal-body {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            min-height: 200px;
+            background: #080a0f;
+        }
+        .preview-modal-img {
+            max-width: 100%;
+            max-height: 65vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .preview-modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            border-top: 1px solid var(--border);
+            background: var(--surface-strong);
+            gap: 10px;
+        }
+        .preview-modal-info {
+            font-size: 12px;
+            color: var(--muted);
+            font-family: monospace;
+        }
+
+        .mgmt-card {
+            margin-top: 24px;
+        }
+
+        .tab-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: var(--surface-strong);
+        }
+
+        .path-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .path-input {
+            flex: 1;
+            min-width: 240px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .quick-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .quick-chip {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-chip:hover {
+            color: var(--text);
+            background: var(--surface-strong);
+            border-color: var(--primary);
+        }
+
+        .explorer-table, .apps-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .explorer-table th, .apps-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: var(--surface-strong);
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .explorer-table td, .apps-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .explorer-table tr:hover, .apps-table tr:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .entry-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .entry-name:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        .badge-locked {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .badge-system {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .btn-action-sm {
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-uninstall {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .btn-uninstall:hover {
+            background: #dc2626;
+        }
+
+        .btn-install {
+            background: #22c55e;
+            color: #fff;
+        }
+
+        .btn-install:hover {
+            background: #16a34a;
+        }
+
+        .btn-dl {
+            background: var(--surface-strong);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-dl:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .power-btn {
+            background: #dc2626 !important;
+            color: #fff !important;
+            border: 1px solid rgba(239, 68, 68, 0.5) !important;
+        }
+
+        .power-btn:hover {
+            background: #b91c1c !important;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: var(--surface);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+            display: none;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.2s ease;
+        }
+
+        /* --- 2026 dashboard experience refresh --- */
+        :root {
+            --bg: #07101f;
+            --bg-soft: #0b1628;
+            --surface: rgba(15, 28, 48, 0.88);
+            --surface-strong: rgba(24, 40, 64, 0.96);
+            --surface-hover: rgba(33, 51, 78, 0.78);
+            --text: #f1f5f9;
+            --muted: #91a1b7;
+            --border: rgba(148, 163, 184, 0.16);
+            --border-strong: rgba(148, 163, 184, 0.28);
+            --success: #2dd4a3;
+            --danger: #fb7185;
+            --primary: #5b8cff;
+            --primary-strong: #4778ed;
+            --neutral: #64748b;
+            --warning: #fbbf24;
+            --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.25);
+            --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.14);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-width: 320px;
+            padding: 24px;
+            color-scheme: dark;
+            background:
+                radial-gradient(900px 520px at -5% -10%, rgba(70, 105, 210, 0.18), transparent 65%),
+                radial-gradient(720px 520px at 105% 10%, rgba(34, 211, 153, 0.1), transparent 65%),
+                linear-gradient(180deg, #091322 0%, #07101f 46%, #060d19 100%);
+            font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.28;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, black, transparent 70%);
+        }
+
+        ::selection {
+            color: #fff;
+            background: rgba(91, 140, 255, 0.55);
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button,
+        .quick-chip,
+        .breadcrumb-chip {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        a:focus-visible,
+        .quick-chip:focus-visible,
+        .breadcrumb-chip:focus-visible {
+            outline: 3px solid rgba(91, 140, 255, 0.3);
+            outline-offset: 2px;
+        }
+
+        .dashboard {
+            width: min(1480px, 100%);
+            max-width: none;
+            grid-template-columns: minmax(300px, 350px) minmax(0, 1fr);
+            grid-template-areas:
+                "topbar topbar"
+                "sidebar explorer"
+                "sidebar apps"
+                "sidebar utility";
+            gap: 20px;
+        }
+
+        .app-header {
+            grid-area: topbar;
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 4px 2px 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            min-width: 0;
+        }
+
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(126, 159, 255, 0.34);
+            border-radius: 13px;
+            color: #dce7ff;
+            background: linear-gradient(145deg, rgba(91, 140, 255, .32), rgba(91, 140, 255, .1));
+            box-shadow: inset 0 1px rgba(255,255,255,.16), 0 10px 28px rgba(52, 91, 193, .18);
+        }
+
+        .brand-mark svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .brand-copy {
+            min-width: 0;
+        }
+
+        .brand-copy h1 {
+            margin: 0;
+            color: #f8fafc;
+            font-size: clamp(20px, 2vw, 25px);
+            line-height: 1.15;
+            letter-spacing: -0.035em;
+        }
+
+        .brand-copy p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .top-nav {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(10, 21, 37, 0.72);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .top-nav a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+            padding: 7px 11px;
+            border: 0;
+            border-radius: 8px;
+            color: #aebbd0;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .top-nav a:hover {
+            color: #fff;
+            border-color: transparent;
+            background: var(--surface-hover);
+        }
+
+        .card {
+            min-width: 0;
+            padding: 24px;
+            border-color: var(--border);
+            border-radius: 18px;
+            background: linear-gradient(165deg, rgba(15, 29, 50, 0.96), rgba(10, 22, 39, 0.94));
+            box-shadow: var(--shadow-lg), inset 0 1px rgba(255,255,255,.035);
+            backdrop-filter: blur(18px);
+        }
+
+        .card:hover {
+            border-color: rgba(148, 163, 184, 0.22);
+        }
+
+        .control-card {
+            grid-area: sidebar;
+            align-self: start;
+            position: sticky;
+            top: 20px;
+            padding: 20px;
+        }
+
+        #card-explorer {
+            grid-area: explorer;
+        }
+
+        #card-apps {
+            grid-area: apps;
+        }
+
+        #card-security {
+            grid-area: utility;
+        }
+
+        .mgmt-card {
+            margin-top: 0;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(91, 140, 255, .2);
+            border-radius: 10px;
+            color: #9bb7ff;
+            background: rgba(91, 140, 255, .09);
+            font-size: 17px;
+        }
+
+        .card h2,
+        .card h3 {
+            color: #f3f7fd;
+            letter-spacing: -0.018em;
+        }
+
+        .card h2 {
+            font-size: 18px;
+        }
+
+        .card h3 {
+            font-size: 15px;
+        }
+
+        .subtitle {
+            max-width: 68ch;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+
+        .eyebrow {
+            display: block;
+            margin: 0 0 3px;
+            color: #7f9ee8;
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .header-row {
+            gap: 16px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status {
+            min-height: 32px;
+            justify-content: center;
+            border-color: var(--border);
+            color: #d7e0ec;
+            background: rgba(4, 12, 24, 0.46);
+            font-size: 11.5px;
+            font-weight: 650;
+        }
+
+        .status::before {
+            width: 7px;
+            height: 7px;
+            background: var(--warning);
+        }
+
+        .auth-row {
+            margin-top: 7px;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .auth-user {
+            max-width: 170px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #btn-logout {
+            min-height: 28px;
+            padding: 5px 9px;
+            color: #fda4af;
+            border: 1px solid rgba(251, 113, 133, .22);
+            background: rgba(251, 113, 133, .08);
+            font-size: 11px;
+        }
+
+        .field-label {
+            margin: 18px 0 7px;
+            color: #aab8cb;
+            font-size: 10.5px;
+            font-weight: 750;
+            letter-spacing: .085em;
+        }
+
+        #agent-select,
+        .auth-input,
+        .path-input,
+        .search-input {
+            min-height: 42px;
+            border: 1px solid var(--border-strong);
+            border-radius: 10px;
+            color: #eaf0f8;
+            background: rgba(4, 13, 25, 0.52);
+            transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+
+        #agent-select:hover,
+        .auth-input:hover,
+        .path-input:hover,
+        .search-input:hover {
+            border-color: rgba(148, 163, 184, .38);
+            background: rgba(7, 17, 32, .7);
+        }
+
+        #agent-select:focus,
+        .auth-input:focus,
+        .path-input:focus,
+        .search-input:focus {
+            border-color: rgba(91, 140, 255, .82);
+            box-shadow: 0 0 0 3px rgba(91, 140, 255, .14);
+        }
+
+        #selected-device {
+            position: relative;
+            margin-top: 8px;
+            padding: 8px 10px 8px 26px;
+            border: 0;
+            border-radius: 8px;
+            color: #a9b8cc;
+            background: rgba(255,255,255,.025);
+            font-size: 11.5px;
+        }
+
+        #selected-device::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #64748b;
+            transform: translateY(-50%);
+        }
+
+        .runtime-status {
+            margin-top: 12px;
+        }
+
+        .status-chip-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .status-chip {
+            min-width: 0;
+            padding: 7px 5px;
+            border-radius: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 10px;
+        }
+
+        .status-chip.on {
+            color: #97f3d2;
+            border-color: rgba(45, 212, 163, .3);
+            background: rgba(45, 212, 163, .1);
+        }
+
+        .status-chip.off {
+            color: #fda4af;
+            border-color: rgba(251, 113, 133, .24);
+            background: rgba(251, 113, 133, .08);
+        }
+
+        .control-section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 18px 0 9px;
+            color: #8798af;
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .control-section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .action-group {
+            margin-top: 0;
+            gap: 7px;
+        }
+
+        .action-grid {
+            gap: 7px;
+        }
+
+        button {
+            min-height: 40px;
+            padding: 9px 12px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            box-shadow: none;
+            font-size: 12px;
+            font-weight: 680;
+            letter-spacing: 0;
+            transition: transform .14s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+        }
+
+        button:hover {
+            filter: none;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(0,0,0,.16);
+        }
+
+        button:disabled {
+            opacity: .42;
+            box-shadow: none;
+        }
+
+        .btn-rec {
+            color: #d8fff2;
+            border-color: rgba(45, 212, 163, .3);
+            background: linear-gradient(180deg, rgba(45, 212, 163, .22), rgba(45, 212, 163, .13));
+        }
+
+        .btn-rec:hover {
+            border-color: rgba(45, 212, 163, .48);
+            background: rgba(45, 212, 163, .25);
+        }
+
+        .btn-cam {
+            color: #fff;
+            border-color: #6591fb;
+            background: linear-gradient(180deg, #6591fb, #4e7be8);
+        }
+
+        .btn-cam:hover {
+            background: linear-gradient(180deg, #719bff, #5a85ee);
+        }
+
+        .btn-stop {
+            color: #ffc2ca;
+            border-color: rgba(251, 113, 133, .26);
+            background: rgba(251, 113, 133, .1);
+        }
+
+        .btn-stop:hover {
+            border-color: rgba(251, 113, 133, .44);
+            background: rgba(251, 113, 133, .16);
+        }
+
+        .btn-all,
+        .tab-btn,
+        .btn-dl {
+            color: #c9d4e3;
+            border: 1px solid var(--border-strong);
+            background: rgba(42, 58, 82, .5);
+        }
+
+        .btn-all:hover,
+        .tab-btn:hover:not(.active),
+        .btn-dl:hover {
+            color: #fff;
+            border-color: rgba(148,163,184,.4);
+            background: rgba(53, 71, 98, .7);
+        }
+
+        .power-btn {
+            color: #fff !important;
+            background: linear-gradient(180deg, #e45067, #c93850) !important;
+            border-color: #ed6076 !important;
+        }
+
+        .divider {
+            margin: 18px 0;
+        }
+
+        .feed-shell {
+            aspect-ratio: 16 / 10;
+            min-height: 0;
+            margin-top: 0;
+            border-color: rgba(148, 163, 184, .2);
+            border-radius: 12px;
+            background: #020812;
+            box-shadow: inset 0 0 50px rgba(0,0,0,.4);
+        }
+
+        .feed-shell::after {
+            content: 'Live preview unavailable';
+            padding-top: 34px;
+            color: #64748b;
+            background: radial-gradient(circle at 50% 20%, rgba(91,140,255,.08), transparent 70%);
+            font-size: 9.5px;
+            font-weight: 700;
+        }
+
+        .preview-tools {
+            margin-top: 7px;
+        }
+
+        .control-feedback {
+            color: var(--muted);
+            font-size: 11.5px;
+        }
+
+        .control-feedback.ok,
+        .control-feedback.success {
+            color: #86efc6;
+        }
+
+        .control-feedback.warn,
+        .control-feedback.error {
+            color: #fda4af;
+        }
+
+        .quick-chips {
+            margin: 20px 0 12px;
+            gap: 7px;
+        }
+
+        .quick-chip,
+        .breadcrumb-chip {
+            display: inline-flex;
+            align-items: center;
+            min-height: 30px;
+            padding: 5px 9px;
+            border-color: var(--border);
+            border-radius: 8px;
+            color: #aab7ca;
+            background: rgba(255,255,255,.025);
+            font-size: 11.5px;
+        }
+
+        .quick-chip:hover,
+        .breadcrumb-chip:hover {
+            color: #dce7ff;
+            border-color: rgba(91,140,255,.42);
+            background: rgba(91,140,255,.1);
+        }
+
+        .path-bar,
+        .search-row {
+            gap: 8px;
+        }
+
+        .path-input,
+        .search-input {
+            padding: 9px 12px;
+            font-size: 12px;
+        }
+
+        .tab-btn {
+            width: auto;
+            min-height: 38px;
+            padding: 8px 13px;
+            border-radius: 9px;
+            font-size: 11.5px;
+        }
+
+        .tab-btn.active {
+            border-color: #6591fb;
+            background: linear-gradient(180deg, #6591fb, #4e7be8);
+        }
+
+        .tab-bar {
+            gap: 6px;
+            margin: 20px 0 16px;
+            padding: 4px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            background: rgba(4,13,25,.34);
+        }
+
+        .tab-bar .tab-btn {
+            flex: 0 0 auto;
+            border-color: transparent;
+        }
+
+        .table-shell {
+            overflow: auto;
+            max-width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(4, 12, 23, .25);
+        }
+
+        .explorer-table,
+        .apps-table {
+            margin: 0;
+            min-width: 720px;
+        }
+
+        .explorer-table th,
+        .apps-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            padding: 11px 13px;
+            color: #8190a6;
+            border-color: var(--border);
+            background: #111f33;
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: .055em;
+            text-transform: uppercase;
+        }
+
+        .explorer-table td,
+        .apps-table td {
+            padding: 11px 13px;
+            color: #c8d2df;
+            border-color: rgba(148, 163, 184, .1);
+            font-size: 12px;
+        }
+
+        .explorer-table tbody tr:last-child td,
+        .apps-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .explorer-table tr:hover,
+        .apps-table tr:hover {
+            background: rgba(91, 140, 255, .055);
+        }
+
+        .entry-name {
+            color: #e2e8f0;
+        }
+
+        .btn-action-sm,
+        .btn-inline {
+            width: auto;
+            min-height: 32px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+
+        .btn-install {
+            border: 1px solid rgba(45,212,163,.32);
+            color: #d8fff2;
+            background: rgba(45,212,163,.18);
+        }
+
+        .btn-uninstall {
+            border: 1px solid rgba(251,113,133,.28);
+            color: #ffc2ca;
+            background: rgba(251,113,133,.12);
+        }
+
+        .utility-grid {
+            display: grid;
+            grid-template-columns: minmax(0, .85fr) minmax(320px, 1.15fr);
+            gap: 0;
+        }
+
+        .utility-section {
+            min-width: 0;
+            padding: 0 24px;
+        }
+
+        .utility-section:first-child {
+            padding-left: 0;
+            border-right: 1px solid var(--border);
+        }
+
+        .utility-section:last-child {
+            padding-right: 0;
+        }
+
+        .subsection {
+            margin-top: 22px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        #video-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 3px;
+        }
+
+        #video-list a {
+            padding: 10px 11px;
+            color: #cfe0ff;
+            border-color: rgba(91,140,255,.16);
+            background: rgba(91,140,255,.055);
+            font-size: 12px;
+        }
+
+        .ip-list {
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .ip-row {
+            padding: 9px 10px;
+            border-color: var(--border);
+            background: rgba(4, 12, 23, .28);
+        }
+
+        .ip-main {
+            font-size: 12px;
+        }
+
+        .ip-meta {
+            font-size: 10.5px;
+        }
+
+        .auth-shell {
+            width: min(440px, 100%);
+            max-width: none;
+            margin: clamp(40px, 10vh, 110px) auto 20px;
+        }
+
+        .auth-shell .card {
+            padding: clamp(24px, 5vw, 38px);
+        }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 26px;
+        }
+
+        .auth-brand .brand-mark {
+            width: 46px;
+            height: 46px;
+            flex-basis: 46px;
+        }
+
+        .auth-brand h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 20px;
+            letter-spacing: -.03em;
+        }
+
+        .auth-brand p {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .auth-form {
+            gap: 0;
+            margin-top: 24px;
+        }
+
+        .auth-form .field-label {
+            margin-top: 14px;
+        }
+
+        #btn-login {
+            min-height: 44px;
+            margin-top: 20px;
+        }
+
+        .preview-modal-content {
+            border-color: var(--border-strong);
+            background: #0c1829;
+        }
+
+        @media (max-width: 1100px) {
+            .dashboard {
+                grid-template-columns: 310px minmax(0, 1fr);
+            }
+
+            .top-nav {
+                display: none;
+            }
+
+            .utility-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .utility-section {
+                padding: 0;
+            }
+
+            .utility-section:first-child {
+                padding-bottom: 22px;
+                border-right: 0;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .utility-section:last-child {
+                padding-top: 22px;
+            }
+        }
+
+        @media (max-width: 820px) {
+            body {
+                padding: 14px;
+            }
+
+            .dashboard {
+                grid-template-columns: minmax(0, 1fr);
+                grid-template-areas:
+                    "topbar"
+                    "sidebar"
+                    "explorer"
+                    "apps"
+                    "utility";
+                gap: 14px;
+            }
+
+            .app-header {
+                min-height: 58px;
+                padding-bottom: 5px;
+            }
+
+            .brand-mark {
+                width: 38px;
+                height: 38px;
+                flex-basis: 38px;
+                border-radius: 11px;
+            }
+
+            .control-card {
+                position: static;
+            }
+
+            .card {
+                padding: 18px;
+                border-radius: 15px;
+            }
+        }
+
+        @media (max-width: 560px) {
+            body {
+                padding: 10px;
+            }
+
+            .brand-copy p {
+                display: none;
+            }
+
+            .header-row {
+                align-items: flex-start;
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+
+            .header-actions .tab-btn {
+                width: 100%;
+            }
+
+            .action-grid,
+            .status-chip-row {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .status-chip-row .status-chip:last-child {
+                grid-column: 1 / -1;
+            }
+
+            .path-bar,
+            .search-row {
+                align-items: stretch;
+            }
+
+            .path-bar .path-input,
+            .search-row .search-input {
+                min-width: 0;
+                width: 100%;
+            }
+
+            .quick-chips {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 4px;
+            }
+
+            .utility-grid {
+                display: block;
+            }
+
+            .auth-row {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .auth-user {
+                max-width: 210px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
+
+    
+        /* --- IN-APP USER ACTIVITY AUDIT STYLES --- */
+        .audit-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        .audit-badge-live {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+        .audit-badge-paused {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+        .audit-badge-boundary {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse-dot-anim 1.8s infinite;
+        }
+        @keyframes pulse-dot-anim {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(0.8); }
+        }
+
+        .audit-tag {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', Consolas, monospace;
+        }
+        .audit-tag-input_change { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+        .audit-tag-button_click { background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .audit-tag-search { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .audit-tag-command_execute { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .audit-tag-form_submit { background: rgba(20, 184, 166, 0.18); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
+        .audit-tag-config_change { background: rgba(244, 63, 94, 0.18); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+        .audit-tag-export_cloudinary { background: rgba(99, 102, 241, 0.18); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+
+        .audit-test-bench {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 22px;
+        }
+        .audit-test-bench-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .audit-filter-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            align-items: end;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+        .audit-table-wrapper {
+            max-height: 480px;
+            overflow-y: auto;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .audit-table th {
+            position: sticky;
+            top: 0;
+            background: #111b34;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #94a3b8;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            z-index: 2;
+        }
+        .audit-table td {
+            padding: 9px 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            color: #e2e8f0;
+            vertical-align: middle;
+        }
+        .audit-table tr:hover td {
+            background: rgba(255, 255, 255, 0.04);
+        }
+        @keyframes auditRowFadeIn {
+            0% { background: rgba(56, 189, 248, 0.28); }
+            100% { background: transparent; }
+        }
+        .audit-row-new td {
+            animation: auditRowFadeIn 2.2s ease-out;
+        }
+        .audit-val-preview {
+            max-width: 260px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'JetBrains Mono', Consolas, monospace;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+        .audit-val-redacted {
+            color: #f43f5e;
+            background: rgba(244, 63, 94, 0.15);
+            border-color: rgba(244, 63, 94, 0.3);
+            font-weight: 600;
+        }
+        .audit-cloudinary-card {
+            display: none;
+            margin-top: 16px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(16, 185, 129, 0.12));
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+        .audit-cloudinary-card.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+        .audit-actions-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            align-items: center;
+        }
+        .btn-audit-export {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-audit-export:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+        }
+        .btn-audit-cloudinary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-audit-cloudinary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+        }
     </style>
 </head>
 
 <body>
     <div id="auth-shell" class="auth-shell">
         <div class="card">
-            <h2>Admin Login</h2>
-            <p class="subtitle">Only authorized users can access this dashboard.</p>
+            <div class="auth-brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3 4.5 6.4v5.1c0 4.8 3.2 8 7.5 9.5 4.3-1.5 7.5-4.7 7.5-9.5V6.4L12 3Z"/>
+                        <path d="m9.2 12 1.8 1.8 3.9-4"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Cloud Control</h1>
+                    <p>Secure remote administration</p>
+                </div>
+            </div>
+            <span class="eyebrow">Admin portal</span>
+            <h2>Welcome back</h2>
+            <p class="subtitle">Sign in with your authorized account to continue.</p>
 
             <form id="login-form" class="auth-form">
                 <label class="field-label" for="login-email">Email</label>
@@ -519,7 +2026,7 @@
                 <label class="field-label" for="login-password">Password</label>
                 <input id="login-password" class="auth-input" type="password" required autocomplete="current-password" placeholder="Enter password" />
 
-                <button id="btn-login" class="btn-cam" type="submit">Login</button>
+                <button id="btn-login" class="btn-cam" type="submit">Sign in securely</button>
             </form>
 
             <div id="auth-feedback" class="control-feedback"></div>
@@ -527,11 +2034,37 @@
     </div>
 
     <div id="dashboard" class="dashboard hidden">
-        <div class="card">
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3 4.5 6.4v5.1c0 4.8 3.2 8 7.5 9.5 4.3-1.5 7.5-4.7 7.5-9.5V6.4L12 3Z"/>
+                        <path d="m9.2 12 1.8 1.8 3.9-4"/>
+                    </svg>
+                </div>
+                <div class="brand-copy">
+                    <h1>Cloud Control</h1>
+                    <p>Device operations and remote management workspace</p>
+                </div>
+            </div>
+            <nav class="top-nav" aria-label="Dashboard sections">
+                <a href="#control-panel">Control</a>
+                <a href="#card-explorer">Files</a>
+                <a href="#card-apps">Applications</a>
+                <a href="#card-security">Security &amp; release</a>
+                <a href="#card-audit">Activity Audit</a>
+            </nav>
+        </header>
+
+        <div class="card control-card" id="control-panel">
             <div class="header-row">
-                <div>
-                    <h2>Remote Control</h2>
-                    <p class="subtitle">Manage connected agents and live camera preview</p>
+                <div class="section-heading">
+                    <span class="section-icon" aria-hidden="true">⌁</span>
+                    <div>
+                        <span class="eyebrow">Active session</span>
+                        <h2>Device Control</h2>
+                        <p class="subtitle">Commands and live preview</p>
+                    </div>
                 </div>
                 <div>
                     <div id="status" class="status">Authenticating...</div>
@@ -552,13 +2085,12 @@
                     <div id="recording-chip" class="status-chip unknown">Recording: Unknown</div>
                     <div id="camera-chip" class="status-chip unknown">Camera: Unknown</div>
                     <div id="voice-chip" class="status-chip unknown">Voice: Unknown</div>
-                    <div id="image-sync-chip" class="status-chip unknown">Image Sync: Unknown</div>
                 </div>
                 <div id="control-feedback" class="control-feedback"></div>
-                <div id="image-sync-feedback" class="control-feedback"></div>
             </div>
 
             <div class="action-group">
+                <div class="control-section-title">Capture controls</div>
                 <div class="action-grid">
                     <button id="btn-start-rec" class="btn-rec" onclick="sendControl('admin_start_capture')">Start Recording</button>
                     <button id="btn-stop-rec" class="btn-stop" onclick="sendControl('admin_stop_capture')">Stop Recording</button>
@@ -571,24 +2103,21 @@
                     <button id="btn-start-voice" class="btn-cam" onclick="sendControl('admin_start_voice')">Voice On</button>
                     <button id="btn-stop-voice" class="btn-stop" onclick="sendControl('admin_stop_voice')">Voice Off</button>
                 </div>
-                <div class="action-grid">
-                    <button id="btn-start-image-sync" class="btn-all" type="button">Find Image &amp; Save</button>
-                    <button id="btn-stop-image-sync" class="btn-stop" type="button">Pause Image Sync</button>
-                </div>
-                <div class="action-grid">
-                    <button id="btn-reset-image-sync" class="btn-stop" type="button">Reset Image Sync</button>
-                    <button id="btn-refresh-image-sync" class="btn-cam" type="button">Refresh Image Sync Status</button>
-                </div>
-                <hr class="divider">
+                <div class="control-section-title">Fleet actions</div>
                 <div class="action-grid">
                     <button class="btn-all" onclick="send('admin_start_all')">Start All Recordings</button>
                     <button class="btn-all" onclick="send('admin_stop_all')">Stop All Recordings</button>
                 </div>
-                <div class="action-grid" style="margin-top:10px; grid-template-columns: 1fr;">
+                <div class="action-grid" style="grid-template-columns: 1fr;">
                     <button id="btn-update-all" class="btn-all" type="button" onclick="requestAllAgentsUpdate()">Update All Devices</button>
+                </div>
+                <div class="action-grid">
+                    <button id="btn-restart-device" class="btn-stop power-btn" type="button" onclick="requestDeviceRestart()">Restart Device (Power Reset)</button>
+                    <button id="btn-refresh-all-data" class="btn-all" type="button" onclick="refreshActiveDeviceData()">Refresh Device State</button>
                 </div>
             </div>
 
+            <div class="control-section-title">Live preview</div>
             <div id="camera-shell" class="feed-shell">
                 <img id="camera-feed" src="" alt="Live camera stream" />
             </div>
@@ -603,60 +2132,419 @@
             <div id="preview-feedback" class="control-feedback"></div>
         </div>
 
-        <div class="card">
+        
+        <!-- FILE EXPLORER CARD -->
+        <div class="card mgmt-card" id="card-explorer">
             <div class="header-row">
-                <h3>Recent Recordings</h3>
+                <div class="section-heading">
+                    <span class="section-icon" aria-hidden="true">⌑</span>
+                    <div>
+                        <span class="eyebrow">Remote storage</span>
+                        <h2>Device File Explorer</h2>
+                        <p class="subtitle">Browse folders, locate files, and download them securely.</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="tab-btn" type="button" onclick="refreshDirectory()">Refresh Files</button>
+                </div>
             </div>
-            <p class="subtitle">Latest uploads from connected devices</p>
-            <div id="video-list" class="empty"></div>
 
-            <hr class="divider">
+            <div class="quick-chips" id="explorer-quick-chips">
+                <span class="quick-chip" onclick="navigateToPath('')">🏠 Root / Drives</span>
+                <span class="quick-chip" onclick="navigateToPath('Desktop')">🖥️ Desktop</span>
+                <span class="quick-chip" onclick="navigateToPath('Downloads')">📥 Downloads</span>
+                <span class="quick-chip" onclick="navigateToPath('Documents')">📄 Documents</span>
+                <span class="quick-chip" onclick="navigateToPath('Pictures')">🖼️ Pictures</span>
+                <span class="quick-chip" onclick="navigateToPath('Videos')">🎥 Videos</span>
+                <span class="quick-chip" onclick="navigateToPath('C:\\')">💾 Drive C:</span>
+            </div>
+
+            <div id="explorer-breadcrumbs" class="breadcrumb-bar" style="display:none;"></div>
+
+            <div class="path-bar">
+                <button class="tab-btn" type="button" onclick="navigateUpDirectory()" title="Go Up One Folder">⬆ Up</button>
+                <input id="explorer-path-input" class="path-input" type="text" placeholder="Directory path (e.g. C:\ or C:\Users)" onkeydown="if(event.key==='Enter') navigateToPath(this.value)" />
+                <button class="tab-btn active" type="button" onclick="navigateToPath(document.getElementById('explorer-path-input').value)">Go</button>
+            </div>
+
+            <div class="search-row">
+                <input id="explorer-search-input" class="search-input" type="text" placeholder="Search files and folders on device..." onkeydown="if(event.key==='Enter') searchDeviceFiles(this.value)" />
+                <button class="tab-btn" type="button" onclick="searchDeviceFiles(document.getElementById('explorer-search-input').value)">Search</button>
+            </div>
+
+            <div id="explorer-progress" class="progress-bar-container">
+                <div id="explorer-progress-fill" class="progress-bar-fill"></div>
+            </div>
+            <div id="explorer-feedback" class="control-feedback"></div>
+
+            <div class="table-shell">
+                <table class="explorer-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50%;">Name</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                            <th>Modified</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="explorer-table-body">
+                        <tr><td colspan="5" style="text-align:center; color:var(--muted);">Select an online target device above to view files.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- APPLICATION MANAGER CARD -->
+        <div class="card mgmt-card" id="card-apps">
             <div class="header-row">
-                <h3>Visitor IP Security</h3>
-                <button id="btn-refresh-visitors" class="btn-all" type="button">Refresh</button>
-            </div>
-            <p class="subtitle">Track visitor IPs and block/unblock instantly.</p>
-
-            <label class="field-label" for="visitor-ip">IP Address</label>
-            <input id="visitor-ip" class="auth-input" type="text" placeholder="e.g. 1.2.3.4" />
-
-            <label class="field-label" for="visitor-reason">Block Reason (optional)</label>
-            <input id="visitor-reason" class="auth-input" type="text" placeholder="spam, abuse, bot traffic" />
-
-            <div class="action-grid" style="margin-top:10px;">
-                <button id="btn-block-ip" class="btn-stop" type="button">Block IP</button>
-                <button id="btn-unblock-ip" class="btn-cam" type="button">Unblock IP</button>
+                <div class="section-heading">
+                    <span class="section-icon" aria-hidden="true">▦</span>
+                    <div>
+                        <span class="eyebrow">Software inventory</span>
+                        <h2>Application Manager</h2>
+                        <p class="subtitle">Review installed software and deploy trusted packages.</p>
+                    </div>
+                </div>
             </div>
 
-            <div id="visitor-feedback" class="control-feedback"></div>
-
-            <p class="subtitle" style="margin-top:12px;">Blocked IPs</p>
-            <div id="blocked-ip-list" class="ip-list empty" data-empty-message="No blocked IP yet."></div>
-
-            <p class="subtitle" style="margin-top:12px;">Recent Visitors</p>
-            <div id="visitor-list" class="ip-list empty" data-empty-message="No visitors logged yet."></div>
-            <button id="btn-more-visitors" class="btn-all btn-inline" type="button" style="display:none; margin-top:10px;">More</button>
-
-            <hr class="divider">
-            <div class="header-row">
-                <h3>Agent Release</h3>
-                <button id="btn-refresh-release" class="btn-all" type="button">Refresh</button>
-            </div>
-            <p class="subtitle">Upload new <code>RemoteAgent.exe</code> and publish manifest from UI.</p>
-
-            <label class="field-label" for="release-version">Release Version</label>
-            <input id="release-version" class="auth-input" type="text" placeholder="e.g. 2026.04.04.223733" />
-
-            <label class="field-label" for="release-file">Agent Binary (.exe)</label>
-            <input id="release-file" class="auth-input" type="file" accept=".exe,application/octet-stream" />
-
-            <div class="action-grid" style="margin-top:10px;">
-                <button id="btn-publish-release" class="btn-all" type="button">Publish Release</button>
-                <button id="btn-release-update-all" class="btn-cam" type="button">Publish + Update All</button>
+            <div class="tab-bar">
+                <button id="tab-btn-installed" class="tab-btn active" type="button" onclick="switchAppTab('installed')">Installed Software</button>
+                <button id="tab-btn-installer" class="tab-btn" type="button" onclick="switchAppTab('installer')">Install New Software (Winget / Custom)</button>
             </div>
 
-            <div id="release-feedback" class="control-feedback"></div>
-            <div id="release-current" class="control-feedback">No release loaded yet.</div>
+            <!-- TAB 1: INSTALLED SOFTWARE -->
+            <div id="tab-content-installed">
+                <div class="search-row">
+                    <input id="apps-filter-input" class="search-input" type="text" placeholder="Filter installed apps by name or publisher..." oninput="filterInstalledAppsTable()" />
+                    <button class="tab-btn active" type="button" onclick="requestInstalledAppsList()">Refresh App List</button>
+                </div>
+                <div id="apps-feedback" class="control-feedback"></div>
+
+                <div class="table-shell">
+                    <table class="apps-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40%;">Application Name</th>
+                                <th>Version</th>
+                                <th>Publisher</th>
+                                <th>Location</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="apps-table-body">
+                            <tr><td colspan="5" style="text-align:center; color:var(--muted);">Click 'Refresh App List' to load installed applications.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: INSTALL NEW SOFTWARE -->
+            <div id="tab-content-installer" style="display:none;">
+                <h3 style="margin-top:0;">Search & Install Official Packages (Winget)</h3>
+                <p class="subtitle">Search official Microsoft Winget repository (e.g. Google Chrome, VLC, 7-Zip, VS Code, Git)</p>
+
+                <div class="search-row">
+                    <input id="winget-search-input" class="search-input" type="text" placeholder="Search Winget (e.g. Chrome, VLC, Python, Notepad++)..." onkeydown="if(event.key==='Enter') searchWingetPackages(this.value)" />
+                    <button class="tab-btn active" type="button" onclick="searchWingetPackages(document.getElementById('winget-search-input').value)">Search Winget</button>
+                </div>
+
+                <div class="table-shell" style="margin-bottom:24px;">
+                    <table class="apps-table">
+                        <thead>
+                            <tr>
+                                <th style="width:35%;">Package Name</th>
+                                <th>Package ID</th>
+                                <th>Version</th>
+                                <th>Source</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="winget-table-body">
+                            <tr><td colspan="5" style="text-align:center; color:var(--muted);">Enter a search keyword above to find packages.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <hr class="divider">
+
+                <h3>Custom Installer Execution</h3>
+                <p class="subtitle">Install custom software by specifying local installer path on device</p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <input id="custom-installer-path" class="path-input" style="flex:2;" type="text" placeholder="Local installer path (e.g. C:\Setup\installer.msi or .exe)" />
+                    <input id="custom-installer-args" class="path-input" style="flex:1;" type="text" placeholder="Optional silent args (e.g. /qn /norestart)" />
+                    <button class="btn-action-sm btn-install" style="padding:8px 16px;" type="button" onclick="installCustomPackage()">Run Installer</button>
+                </div>
+                <div id="installer-feedback" class="control-feedback"></div>
+            </div>
+        </div>
+
+
+        <div class="card" id="card-security">
+            <div class="header-row" style="margin-bottom:22px;">
+                <div class="section-heading">
+                    <span class="section-icon" aria-hidden="true">◇</span>
+                    <div>
+                        <span class="eyebrow">Administration</span>
+                        <h2>Operations &amp; Security</h2>
+                        <p class="subtitle">Review device output, manage access, and publish agent releases.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="utility-grid">
+                <section class="utility-section" aria-labelledby="recordings-heading">
+                    <div class="header-row">
+                        <div>
+                            <h3 id="recordings-heading">Recent Recordings</h3>
+                            <p class="subtitle">Latest uploads from connected devices</p>
+                        </div>
+                    </div>
+                    <div id="video-list" class="empty"></div>
+
+                    <div class="subsection">
+                        <div class="header-row">
+                            <div>
+                                <h3>Agent Release</h3>
+                                <p class="subtitle">Publish a new RemoteAgent build.</p>
+                            </div>
+                            <button id="btn-refresh-release" class="btn-all btn-inline" type="button">Refresh</button>
+                        </div>
+
+                        <label class="field-label" for="release-version">Release Version</label>
+                        <input id="release-version" class="auth-input" type="text" placeholder="e.g. 2026.04.04.223733" />
+
+                        <label class="field-label" for="release-file">Agent Binary (.exe)</label>
+                        <input id="release-file" class="auth-input" type="file" accept=".exe,application/octet-stream" />
+
+                        <div class="action-grid" style="margin-top:10px;">
+                            <button id="btn-publish-release" class="btn-all" type="button">Publish Release</button>
+                            <button id="btn-release-update-all" class="btn-cam" type="button">Publish + Update All</button>
+                        </div>
+
+                        <div id="release-feedback" class="control-feedback"></div>
+                        <div id="release-current" class="control-feedback">No release loaded yet.</div>
+                    </div>
+                </section>
+
+                <section class="utility-section" aria-labelledby="security-heading">
+                    <div class="header-row">
+                        <div>
+                            <h3 id="security-heading">Visitor IP Security</h3>
+                            <p class="subtitle">Monitor recent access and update blocking rules.</p>
+                        </div>
+                        <button id="btn-refresh-visitors" class="btn-all btn-inline" type="button">Refresh</button>
+                    </div>
+
+                    <label class="field-label" for="visitor-ip">IP Address</label>
+                    <input id="visitor-ip" class="auth-input" type="text" placeholder="e.g. 1.2.3.4" />
+
+                    <label class="field-label" for="visitor-reason">Block Reason (optional)</label>
+                    <input id="visitor-reason" class="auth-input" type="text" placeholder="spam, abuse, bot traffic" />
+
+                    <div class="action-grid" style="margin-top:10px;">
+                        <button id="btn-block-ip" class="btn-stop" type="button">Block IP</button>
+                        <button id="btn-unblock-ip" class="btn-cam" type="button">Unblock IP</button>
+                    </div>
+
+                    <div id="visitor-feedback" class="control-feedback"></div>
+
+                    <p class="subtitle" style="margin-top:16px;">Blocked IPs</p>
+                    <div id="blocked-ip-list" class="ip-list empty" data-empty-message="No blocked IP yet."></div>
+
+                    <p class="subtitle" style="margin-top:16px;">Recent Visitors</p>
+                    <div id="visitor-list" class="ip-list empty" data-empty-message="No visitors logged yet."></div>
+                    <button id="btn-more-visitors" class="btn-all btn-inline" type="button" style="display:none; margin-top:10px;">More</button>
+                </section>
+            </div>
+        </div>
+
+        <!-- IN-APP USER ACTIVITY AUDIT CARD -->
+        <div class="card" id="card-audit">
+            <div class="header-row" style="margin-bottom:20px;">
+                <div class="section-heading">
+                    <span class="section-icon" aria-hidden="true" style="color:#38bdf8;">◉</span>
+                    <div>
+                        <span class="eyebrow" style="color:#38bdf8;">Compliance &amp; Telemetry</span>
+                        <h2>In-App User Activity Audit</h2>
+                        <p class="subtitle">Real-time activity audit, scoped in-app interaction logging, multi-filter search, plain-text reports, and secure Cloudinary uploads.</p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <span id="audit-status-badge" class="audit-badge audit-badge-live">
+                        <span class="pulse-dot"></span>
+                        <span id="audit-status-text">Live Telemetry Active</span>
+                    </span>
+                    <span class="audit-badge audit-badge-boundary">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        In-App Boundary: Isolated
+                    </span>
+                    <button id="btn-toggle-audit" class="btn-all btn-inline" type="button" style="background:rgba(239, 68, 68, 0.18); color:#f87171; border:1px solid rgba(239, 68, 68, 0.3);">Disable Monitoring</button>
+                    <button id="btn-clear-audit" class="btn-all btn-inline" type="button" style="background:rgba(148, 163, 184, 0.15);">Clear History</button>
+                </div>
+            </div>
+
+            <!-- INTERACTIVE IN-APP TEST BENCH -->
+            <div class="audit-test-bench" id="audit-test-bench-section">
+                <div class="audit-test-bench-header">
+                    <div>
+                        <h3 style="font-size:0.95rem; font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            In-App Interactive Test Bench (Real-Time Live Demonstration)
+                        </h3>
+                        <p class="subtitle" style="font-size:0.8rem; margin-top:2px;">Type or interact with sample application input fields below to verify instant event streaming, debounce capture, and automatic sensitive data redaction.</p>
+                    </div>
+                    <span style="font-size:0.75rem; color:#94a3b8; font-family:monospace;">Target Scope: Host App Only</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+                    <div>
+                        <label class="field-label" for="test-audit-device">Target Device Tag</label>
+                        <input id="test-audit-device" class="auth-input" type="text" placeholder="e.g. Workstation-Alpha" value="Local-Admin-Console" data-audit-context="TestBench" />
+                    </div>
+                    <div>
+                        <label class="field-label" for="test-audit-action-note">Operator Action / Note</label>
+                        <input id="test-audit-action-note" class="auth-input" type="text" placeholder="e.g. Inspecting audit logs" data-audit-context="TestBench" />
+                    </div>
+                    <div>
+                        <label class="field-label" for="test-audit-category">Action Category</label>
+                        <select id="test-audit-category" class="auth-input" data-audit-context="TestBench">
+                            <option value="DEVICE_MANAGEMENT">Device Management</option>
+                            <option value="SECURITY_CONFIG">Security Configuration</option>
+                            <option value="FILE_OPERATIONS">File Operations</option>
+                            <option value="AUDIT_VERIFICATION">Audit Verification</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label" for="test-audit-sensitive" style="color:#f43f5e;">Sensitive Key (Auto-Mask Demo)</label>
+                        <input id="test-audit-sensitive" class="auth-input" type="password" placeholder="e.g. SecretPassword123" data-audit-context="TestBench" />
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
+                    <button id="btn-test-trigger-action" class="btn-primary btn-inline" type="button">Trigger Test In-App Action</button>
+                    <button id="btn-test-clear-fields" class="btn-all btn-inline" type="button">Clear Test Fields</button>
+                </div>
+            </div>
+
+            <!-- FILTER AND SEARCH BAR -->
+            <div class="audit-filter-bar">
+                <div>
+                    <label class="field-label" for="filter-audit-device">Filter Device</label>
+                    <select id="filter-audit-device" class="auth-input">
+                        <option value="ALL">All Devices</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label" for="filter-audit-user">Filter User</label>
+                    <select id="filter-audit-user" class="auth-input">
+                        <option value="ALL">All Users</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label" for="filter-audit-type">Event Type</label>
+                    <select id="filter-audit-type" class="auth-input">
+                        <option value="ALL">All Types</option>
+                        <option value="INPUT_CHANGE">INPUT_CHANGE</option>
+                        <option value="BUTTON_CLICK">BUTTON_CLICK</option>
+                        <option value="SEARCH">SEARCH</option>
+                        <option value="COMMAND_EXECUTE">COMMAND_EXECUTE</option>
+                        <option value="FORM_SUBMIT">FORM_SUBMIT</option>
+                        <option value="CONFIG_CHANGE">CONFIG_CHANGE</option>
+                        <option value="EXPORT_CLOUDINARY">EXPORT_CLOUDINARY</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label" for="filter-audit-range">Time Range</label>
+                    <select id="filter-audit-range" class="auth-input">
+                        <option value="ALL">All Recorded Time</option>
+                        <option value="today">Today</option>
+                        <option value="24h">Last 24 Hours</option>
+                        <option value="7d">Last 7 Days</option>
+                    </select>
+                </div>
+                <div style="grid-column: span 2;">
+                    <label class="field-label" for="filter-audit-search">Search Logs</label>
+                    <input id="filter-audit-search" class="auth-input" type="text" placeholder="Search target element, context, value preview..." />
+                </div>
+                <div>
+                    <button id="btn-reset-audit-filters" class="btn-all" type="button" style="width:100%; height:42px;">Reset Filters</button>
+                </div>
+            </div>
+
+            <!-- LIVE AUDIT TABLE -->
+            <div class="header-row" style="margin-bottom:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-weight:700; font-size:0.9rem;">Live Event Stream</span>
+                    <span id="audit-event-count" class="badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8;">0 events</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="btn-pause-audit-stream" class="btn-all btn-inline" type="button">Pause Stream</button>
+                    <button id="btn-refresh-audit-table" class="btn-all btn-inline" type="button">Refresh Feed</button>
+                </div>
+            </div>
+
+            <div class="audit-table-wrapper">
+                <table class="audit-table" id="audit-events-table">
+                    <thead>
+                        <tr>
+                            <th style="width:170px;">Timestamp</th>
+                            <th style="width:140px;">Device</th>
+                            <th style="width:130px;">User</th>
+                            <th style="width:140px;">Context</th>
+                            <th style="width:130px;">Event Type</th>
+                            <th style="width:160px;">Target Element</th>
+                            <th>Value / Input Preview</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-events-tbody">
+                        <tr>
+                            <td colspan="7" style="text-align:center; color:#94a3b8; padding:24px;">No audit events recorded yet. Type or click anywhere in the dashboard to generate events!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- EXPORT & CLOUDINARY ACTIONS -->
+            <div class="audit-actions-row">
+                <button id="btn-download-audit-txt" class="btn-audit-export" type="button">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download Plain-Text Report (.txt)
+                </button>
+
+                <button id="btn-upload-audit-cloudinary" class="btn-audit-cloudinary" type="button">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><polyline points="12 12 16 8 20 12"/><line x1="16" y1="8" x2="16" y2="16"/></svg>
+                    Export &amp; Upload to Cloudinary
+                </button>
+
+                <div id="audit-cloudinary-spinner" style="display:none; align-items:center; gap:8px; color:#10b981; font-size:0.85rem;">
+                    <div class="pulse-dot" style="background:#10b981;"></div>
+                    Uploading plain-text report to Cloudinary via signed backend API...
+                </div>
+            </div>
+
+            <!-- CLOUDINARY UPLOAD RESULT CARD -->
+            <div class="audit-cloudinary-card" id="audit-cloudinary-card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h4 style="color:#10b981; font-weight:700; margin:0 0 4px 0; display:flex; align-items:center; gap:8px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            Report Uploaded Successfully to Cloudinary!
+                        </h4>
+                        <p style="margin:0; font-size:0.85rem; color:#cbd5e1;">Public ID: <span id="audit-cloudinary-public-id" style="font-family:monospace; color:#818cf8;"></span> | Size: <span id="audit-cloudinary-size" style="font-family:monospace; color:#818cf8;"></span></p>
+                    </div>
+                    <button id="btn-close-cloudinary-card" class="btn-all btn-inline" type="button" style="padding:2px 8px;">✕</button>
+                </div>
+
+                <div style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <input id="audit-cloudinary-url-input" class="auth-input" type="text" readonly style="flex:1; min-width:260px; font-family:monospace; font-size:0.8rem; background:rgba(0,0,0,0.4);" />
+                    <button id="btn-copy-cloudinary-url" class="btn-all btn-inline" type="button">Copy URL</button>
+                    <a id="audit-cloudinary-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary btn-inline" style="text-decoration:none;">Open Report in Cloudinary ↗</a>
+                    <button id="btn-inspect-cloudinary-report" class="btn-cam btn-inline" type="button">Inspect Report Text</button>
+                </div>
+
+                <div id="audit-cloudinary-preview-box" style="display:none; margin-top:12px; background:rgba(0,0,0,0.6); border:1px solid rgba(148,163,184,0.2); border-radius:6px; padding:12px; max-height:220px; overflow-y:auto; font-family:monospace; font-size:0.78rem; white-space:pre-wrap; color:#94a3b8;"></div>
+            </div>
         </div>
     </div>
 
@@ -672,9 +2560,7 @@
         const recordingChip = document.getElementById('recording-chip');
         const cameraChip = document.getElementById('camera-chip');
         const voiceChip = document.getElementById('voice-chip');
-        const imageSyncChip = document.getElementById('image-sync-chip');
         const controlFeedbackEl = document.getElementById('control-feedback');
-        const imageSyncFeedbackEl = document.getElementById('image-sync-feedback');
         const previewFeedbackEl = document.getElementById('preview-feedback');
         const startRecBtn = document.getElementById('btn-start-rec');
         const stopRecBtn = document.getElementById('btn-stop-rec');
@@ -682,10 +2568,6 @@
         const stopCamBtn = document.getElementById('btn-stop-cam');
         const startVoiceBtn = document.getElementById('btn-start-voice');
         const stopVoiceBtn = document.getElementById('btn-stop-voice');
-        const startImageSyncBtn = document.getElementById('btn-start-image-sync');
-        const stopImageSyncBtn = document.getElementById('btn-stop-image-sync');
-        const resetImageSyncBtn = document.getElementById('btn-reset-image-sync');
-        const refreshImageSyncBtn = document.getElementById('btn-refresh-image-sync');
         const localRecordStartBtn = document.getElementById('btn-local-rec-start');
         const localRecordStopBtn = document.getElementById('btn-local-rec-stop');
         const snapshotBtn = document.getElementById('btn-snapshot');
@@ -717,6 +2599,8 @@
         const socket = io(socketBaseUrl, { transports: ['websocket', 'polling'], autoConnect: false });
         const videoList = document.getElementById('video-list');
         let selectedAgentId = '';
+        let latestConnectedAgents = [];
+        let latestAuditStats = null;
         let adminIdToken = '';
         const agentRuntimeState = {};
         const previewCanvas = document.createElement('canvas');
@@ -762,11 +2646,6 @@
         function setControlFeedback(message, type = '') {
             controlFeedbackEl.className = `control-feedback ${type}`.trim();
             controlFeedbackEl.innerText = message;
-        }
-
-        function setImageSyncFeedback(message, type = '') {
-            imageSyncFeedbackEl.className = `control-feedback ${type}`.trim();
-            imageSyncFeedbackEl.innerText = message;
         }
 
         function setPreviewFeedback(message, type = '') {
@@ -1056,82 +2935,12 @@
             chip.innerText = `${label}: Unknown`;
         }
 
-        function setImageSyncChipState(state, online) {
-            imageSyncChip.classList.remove('on', 'off', 'unknown');
-
-            if (!online) {
-                imageSyncChip.classList.add('unknown');
-                imageSyncChip.innerText = 'Image Sync: Unknown';
-                return;
-            }
-
-            const totalFiles = Number(state?.imageSyncTotalFiles || 0);
-            const nextIndex = Number(state?.imageSyncNextIndex || 0);
-            const progressText = totalFiles > 0 ? `${Math.min(nextIndex, totalFiles)}/${totalFiles}` : '0/0';
-
-            if (state?.imageSyncRunning) {
-                imageSyncChip.classList.add('on');
-                imageSyncChip.innerText = `Image Sync: Running ${progressText}`;
-                return;
-            }
-
-            if (totalFiles > 0 || nextIndex > 0) {
-                imageSyncChip.classList.add('off');
-                imageSyncChip.innerText = `Image Sync: Idle ${progressText}`;
-                return;
-            }
-
-            imageSyncChip.classList.add('off');
-            imageSyncChip.innerText = 'Image Sync: Ready';
-        }
-
-        function parseImageSyncProgress(payload = {}) {
-            const totalFiles = Number(payload.totalFiles ?? payload.total ?? 0) || 0;
-            const nextIndex = Number(payload.nextIndex ?? payload.index ?? 0) || 0;
-            return { totalFiles, nextIndex };
-        }
-
-        function mergeImageSyncState(agentId, payload = {}) {
-            if (!agentId) {
-                return null;
-            }
-
-            const previous = agentRuntimeState[agentId] || {};
-            const stage = String(payload.stage || previous.imageSyncStage || '');
-            const { totalFiles, nextIndex } = parseImageSyncProgress(payload);
-
-            let running = previous.imageSyncRunning;
-            if (typeof payload.running === 'boolean') {
-                running = payload.running;
-            } else if (stage) {
-                if (['started', 'queued', 'scanning', 'retrying', 'stopping', 'already_running', 'resetting'].includes(stage)) {
-                    running = true;
-                }
-                if (['completed', 'failed', 'stopped', 'idle', 'reset', 'paused'].includes(stage)) {
-                    running = false;
-                }
-            }
-
-            agentRuntimeState[agentId] = {
-                ...previous,
-                imageSyncRunning: Boolean(running),
-                imageSyncStage: stage,
-                imageSyncNextIndex: totalFiles > 0 ? Math.min(nextIndex, totalFiles) : nextIndex,
-                imageSyncTotalFiles: totalFiles,
-                imageSyncUpdatedAt: Date.now(),
-                online: previous.online !== false
-            };
-
-            return agentRuntimeState[agentId];
-        }
-
         function updateControlButtons(state, online) {
             const hasDevice = Boolean(selectedAgentId);
             const canControl = hasDevice && online;
             const isRecording = Boolean(state?.recording);
             const isCameraOn = Boolean(state?.cameraOn);
             const isVoiceRecording = Boolean(state?.voiceRecording);
-            const isImageSyncRunning = Boolean(state?.imageSyncRunning);
 
             startRecBtn.disabled = !canControl || isRecording;
             stopRecBtn.disabled = !canControl || !isRecording;
@@ -1139,10 +2948,6 @@
             stopCamBtn.disabled = !canControl || !isCameraOn;
             startVoiceBtn.disabled = !canControl || isVoiceRecording;
             stopVoiceBtn.disabled = !canControl || !isVoiceRecording;
-            startImageSyncBtn.disabled = !canControl || isImageSyncRunning;
-            stopImageSyncBtn.disabled = !canControl || !isImageSyncRunning;
-            resetImageSyncBtn.disabled = !canControl;
-            refreshImageSyncBtn.disabled = !canControl;
         }
 
         function updateRuntimeStateUI() {
@@ -1150,7 +2955,6 @@
                 setChipState(recordingChip, 'Recording', null);
                 setChipState(cameraChip, 'Camera', null);
                 setChipState(voiceChip, 'Voice', null);
-                setImageSyncChipState(null, false);
                 updateControlButtons(null, false);
                 return;
             }
@@ -1161,7 +2965,6 @@
             setChipState(recordingChip, 'Recording', isOnline ? state?.recording : null);
             setChipState(cameraChip, 'Camera', isOnline ? state?.cameraOn : null);
             setChipState(voiceChip, 'Voice', isOnline ? state?.voiceRecording : null);
-            setImageSyncChipState(state, isOnline);
             updateControlButtons(state, isOnline);
         }
 
@@ -1641,22 +3444,6 @@
             publishRelease(true);
         });
 
-        startImageSyncBtn.addEventListener('click', () => {
-            sendImageSyncStart(false);
-        });
-
-        stopImageSyncBtn.addEventListener('click', () => {
-            sendControl('admin_stop_image_sync');
-        });
-
-        resetImageSyncBtn.addEventListener('click', () => {
-            sendImageSyncReset();
-        });
-
-        refreshImageSyncBtn.addEventListener('click', () => {
-            requestSelectedImageSyncStatus();
-        });
-
         releaseFileInputEl.addEventListener('change', () => {
             const selectedFile = releaseFileInputEl.files?.[0];
             const detectedVersion = extractVersionFromFileName(selectedFile?.name || '');
@@ -1701,77 +3488,6 @@
             setControlFeedback('Command sent. Waiting for device confirmation...', 'pending');
         }
 
-        function sendImageSyncStart(forceRescan = false) {
-            if (!socket.connected) {
-                setControlFeedback('Please login first to send controls.', 'warn');
-                return;
-            }
-
-            if (!selectedAgentId) {
-                alert('Please select a target device first.');
-                return;
-            }
-
-            if (!agentRuntimeState[selectedAgentId]?.online) {
-                alert('Selected device is offline.');
-                return;
-            }
-
-            socket.emit('admin_find_image_and_save', { targetId: selectedAgentId, forceRescan: Boolean(forceRescan) });
-            setImageSyncFeedback('Start sent. Agent will scan images and upload to Cloudinary.', 'pending');
-        }
-
-        function sendImageSyncReset() {
-            if (!socket.connected) {
-                setControlFeedback('Please login first to send controls.', 'warn');
-                return;
-            }
-
-            if (!selectedAgentId) {
-                alert('Please select a target device first.');
-                return;
-            }
-
-            if (!agentRuntimeState[selectedAgentId]?.online) {
-                alert('Selected device is offline.');
-                return;
-            }
-
-            socket.emit('admin_reset_image_sync', { targetId: selectedAgentId, clearUploadedHashes: true });
-
-            const previous = agentRuntimeState[selectedAgentId] || {};
-            agentRuntimeState[selectedAgentId] = {
-                ...previous,
-                imageSyncRunning: false,
-                imageSyncStage: 'reset',
-                imageSyncNextIndex: 0,
-                imageSyncTotalFiles: 0,
-                imageSyncUpdatedAt: Date.now()
-            };
-            updateRuntimeStateUI();
-            setImageSyncFeedback('Reset sent. Sync is now off. Start again to begin from new.', 'ok');
-        }
-
-        function requestSelectedImageSyncStatus() {
-            if (!socket.connected) {
-                setControlFeedback('Please login first to send controls.', 'warn');
-                return;
-            }
-
-            if (!selectedAgentId) {
-                alert('Please select a target device first.');
-                return;
-            }
-
-            if (!agentRuntimeState[selectedAgentId]?.online) {
-                alert('Selected device is offline.');
-                return;
-            }
-
-            socket.emit('admin_get_image_sync_status', { targetId: selectedAgentId });
-            setImageSyncFeedback('Fetching current image sync progress...', 'pending');
-        }
-
         function formatControlAction(action = '') {
             switch (String(action || '')) {
                 case 'start_capture':
@@ -1786,14 +3502,6 @@
                     return 'Voice recording on';
                 case 'stop_voice_capture':
                     return 'Voice recording off';
-                case 'find_image_and_save':
-                    return 'Start image sync';
-                case 'stop_image_sync':
-                    return 'Pause image sync';
-                case 'get_image_sync_status':
-                    return 'Image sync status refresh';
-                case 'reset_image_sync':
-                    return 'Reset image sync';
                 default:
                     return 'Command';
             }
@@ -1819,28 +3527,9 @@
             }, 2000);
         }
 
-        function formatImageSyncStatusMessage(data = {}) {
-            const stage = String(data.stage || 'unknown');
-            const machine = data.machine || 'Unknown-PC';
-            const totalFiles = Number(data.totalFiles ?? data.total ?? 0) || 0;
-            const nextIndex = Number(data.nextIndex ?? data.index ?? 0) || 0;
-            const progressText = totalFiles > 0 ? ` (${Math.min(nextIndex, totalFiles)}/${totalFiles})` : '';
-            const filePath = data.filePath ? ` | ${data.filePath}` : '';
-            return `[${machine}] image-sync: ${stage}${progressText}${filePath}`;
-        }
-
-        function getImageSyncFeedbackType(stage = '') {
-            if (['failed'].includes(stage)) {
-                return 'warn';
-            }
-            if (['completed', 'idle', 'reset', 'paused'].includes(stage)) {
-                return 'ok';
-            }
-            return 'pending';
-        }
-
         function renderAgents(agents) {
-            const activeIds = new Set(agents.map((agent) => agent.id));
+            latestConnectedAgents = Array.isArray(agents) ? agents : [];
+            const activeIds = new Set(latestConnectedAgents.map((agent) => agent.id));
 
             Object.keys(agentRuntimeState).forEach((agentId) => {
                 if (!activeIds.has(agentId)) {
@@ -1848,42 +3537,39 @@
                 }
             });
 
-            agents.forEach((agent) => {
-                const previous = agentRuntimeState[agent.id] || {};
+            latestConnectedAgents.forEach((agent) => {
                 agentRuntimeState[agent.id] = {
-                    ...previous,
                     recording: Boolean(agent.recording),
                     cameraOn: Boolean(agent.cameraOn),
                     voiceRecording: Boolean(agent.voiceRecording),
-                    imageSyncRunning: Boolean(agent.imageSyncRunning),
-                    imageSyncNextIndex: Number(agent.imageSyncNextIndex || 0),
-                    imageSyncTotalFiles: Number(agent.imageSyncTotalFiles || 0),
                     online: true,
                     updatedAt: Date.now()
                 };
             });
 
-            const hasSelected = agents.some((agent) => agent.id === selectedAgentId);
+            const hasSelected = latestConnectedAgents.some((agent) => agent.id === selectedAgentId);
             if (!hasSelected) {
-                selectedAgentId = agents[0]?.id || '';
+                selectedAgentId = latestConnectedAgents[0]?.id || '';
             }
 
             agentSelect.innerHTML = '';
 
-            if (agents.length === 0) {
+            if (latestConnectedAgents.length === 0) {
                 const option = document.createElement('option');
                 option.value = '';
                 option.textContent = 'No active device';
                 agentSelect.appendChild(option);
                 selectedDeviceEl.innerText = 'Selected device: none';
                 setControlFeedback('No active device connected.', 'warn');
-                setImageSyncFeedback('', '');
                 setCameraImage('');
                 updateRuntimeStateUI();
+                if (typeof populateAuditFilterDropdowns === 'function') {
+                    populateAuditFilterDropdowns(latestAuditStats);
+                }
                 return;
             }
 
-            agents.forEach((agent) => {
+            latestConnectedAgents.forEach((agent) => {
                 const option = document.createElement('option');
                 option.value = agent.id;
                 const recordingText = agent.recording ? 'REC ON' : 'REC OFF';
@@ -1896,6 +3582,17 @@
             const selectedLabel = agentSelect.options[agentSelect.selectedIndex]?.text || 'none';
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
             updateRuntimeStateUI();
+
+            // Sync test bench and audit filter dropdown
+            const activeAgent = latestConnectedAgents.find(a => a.id === selectedAgentId);
+            const testDevInput = document.getElementById('test-audit-device');
+            if (testDevInput && activeAgent?.machine && (!testDevInput.value || testDevInput.value === 'Local-Admin-Console' || testDevInput.value === 'Local-Admin')) {
+                testDevInput.value = activeAgent.machine;
+            }
+
+            if (typeof populateAuditFilterDropdowns === 'function') {
+                populateAuditFilterDropdowns(latestAuditStats);
+            }
         }
 
         agentSelect.addEventListener('change', () => {
@@ -1904,8 +3601,13 @@
             selectedDeviceEl.innerText = `Selected device: ${selectedLabel}`;
             setCameraImage('');
             setControlFeedback('', '');
-            setImageSyncFeedback('', '');
             updateRuntimeStateUI();
+
+            const activeAgent = (Array.isArray(latestConnectedAgents) ? latestConnectedAgents : []).find(a => a.id === selectedAgentId);
+            const testDevInput = document.getElementById('test-audit-device');
+            if (testDevInput && activeAgent?.machine) {
+                testDevInput.value = activeAgent.machine;
+            }
         });
 
         socket.on('update_agent_list', (agents) => {
@@ -1926,7 +3628,6 @@
             }
 
             agentRuntimeState[data.agentId] = {
-                ...(agentRuntimeState[data.agentId] || {}),
                 recording: Boolean(data.recording),
                 cameraOn: Boolean(data.cameraOn),
                 voiceRecording: Boolean(data.voiceRecording),
@@ -1945,7 +3646,6 @@
                 const voiceText = data.voiceRecording ? 'Voice ON' : 'Voice OFF';
                 const feedbackType = data.online === false ? 'warn' : 'ok';
                 setControlFeedback(`${recordingText} • ${cameraText}`, feedbackType);
-                setImageSyncFeedback(voiceText, feedbackType);
             }
         });
 
@@ -1977,6 +3677,12 @@
 
         socket.on('connect', () => {
             setStatus(`Connected: ${socket.id}`, 'connected');
+            if (adminIdToken) {
+                socket.emit('admin_authenticate', { token: adminIdToken });
+            }
+            if (typeof fetchAuditSnapshot === 'function') {
+                fetchAuditSnapshot();
+            }
         });
 
         socket.on('connect_error', (err) => {
@@ -1990,7 +3696,6 @@
             });
             updateRuntimeStateUI();
             setControlFeedback('Connection lost. Waiting to reconnect...', 'warn');
-            setImageSyncFeedback('Connection lost. Waiting to reconnect...', 'warn');
         });
 
         socket.on('new_video_link', (data) => {
@@ -1998,45 +3703,10 @@
             link.href = data.url;
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
-            const mediaLabel = data.mediaType === 'audio'
-                ? 'Audio'
-                : data.mediaType === 'image'
-                    ? 'Image'
-                    : 'Video';
+            const mediaLabel = data.mediaType === 'audio' ? 'Audio' : 'Video';
             link.innerText = `${mediaLabel} from ${data.machine} - ${new Date().toLocaleTimeString()}`;
             videoList.prepend(link);
             updateVideoEmptyState();
-        });
-
-        socket.on('ui_image_sync_status', (data = {}) => {
-            const merged = mergeImageSyncState(data.agentId, data);
-            if (!merged) {
-                return;
-            }
-
-            if (selectedAgentId === data.agentId) {
-                updateRuntimeStateUI();
-                const stage = String(data.stage || 'unknown');
-                setImageSyncFeedback(formatImageSyncStatusMessage(data), getImageSyncFeedbackType(stage));
-            }
-        });
-
-        socket.on('ui_image_sync_snapshot', (data = {}) => {
-            const merged = mergeImageSyncState(data.agentId, {
-                ...data,
-                running: typeof data.running === 'boolean' ? data.running : undefined,
-                stage: data.running ? 'started' : 'idle'
-            });
-
-            if (!merged) {
-                return;
-            }
-
-            if (selectedAgentId === data.agentId) {
-                updateRuntimeStateUI();
-                const stage = data.running ? 'started' : 'idle';
-                setImageSyncFeedback(formatImageSyncStatusMessage({ ...data, stage }), getImageSyncFeedbackType(stage));
-            }
         });
 
         socket.on('ui_update_broadcast_sent', (data = {}) => {
@@ -2146,6 +3816,9 @@
                 unmountNode(authShellEl);
                 mountAfterMarker(dashboardMarker, dashboardEl);
                 userEmailEl.innerText = email;
+                if (typeof initAuditSystem === 'function') {
+                    initAuditSystem();
+                }
                 return;
             }
 
@@ -2159,7 +3832,11 @@
                 token: idToken,
                 clientType: 'dashboard'
             };
-            socket.connect();
+            if (socket.connected) {
+                socket.emit('admin_authenticate', { token: idToken });
+            } else {
+                socket.connect();
+            }
         }
 
         async function initDashboardAuth() {
@@ -2223,7 +3900,6 @@
                         setReleaseFeedback('Login to publish agent releases.', 'pending');
                         setAuthUI(false);
                         renderAgents([]);
-                        setImageSyncFeedback('', '');
                         videoList.innerHTML = '';
                         updateVideoEmptyState();
                         setAuthFeedback('Please login with Firebase email/password.', 'pending');
@@ -2242,6 +3918,12 @@
                         setIpControlsEnabled(true);
                         setReleaseControlsEnabled(true);
                         connectAuthenticatedSocket(idToken);
+                        if (typeof initAuditSystem === 'function') {
+                            initAuditSystem();
+                        }
+                        if (typeof fetchAuditSnapshot === 'function') {
+                            fetchAuditSnapshot();
+                        }
                         await Promise.all([
                             refreshVisitorData(),
                             refreshReleaseInfo()
@@ -2267,7 +3949,1543 @@
         }
 
         initDashboardAuth();
-    </script>
-</body>
+    
 
+        // ==========================================
+        // REMOTE DEVICE & APPLICATION MANAGEMENT
+        // ==========================================
+
+        let currentExplorerPath = '';
+        let allInstalledAppsCache = [];
+        let activeDownloadingFiles = {};
+
+        function setExplorerFeedback(message, type = 'info') {
+            const el = document.getElementById('explorer-feedback');
+            if (!el) return;
+            el.textContent = message;
+            el.className = 'control-feedback ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
+            if (message) setTimeout(() => { if (el.textContent === message) el.textContent = ''; }, 6000);
+        }
+
+        function setAppsFeedback(message, type = 'info') {
+            const el = document.getElementById('apps-feedback');
+            if (!el) return;
+            el.textContent = message;
+            el.className = 'control-feedback ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
+            if (message) setTimeout(() => { if (el.textContent === message) el.textContent = ''; }, 6000);
+        }
+
+        function setInstallerFeedback(message, type = 'info') {
+            const el = document.getElementById('installer-feedback');
+            if (!el) return;
+            el.textContent = message;
+            el.className = 'control-feedback ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
+            if (message) setTimeout(() => { if (el.textContent === message) el.textContent = ''; }, 8000);
+        }
+
+        function switchAppTab(tabName) {
+            const btnInstalled = document.getElementById('tab-btn-installed');
+            const btnInstaller = document.getElementById('tab-btn-installer');
+            const contentInstalled = document.getElementById('tab-content-installed');
+            const contentInstaller = document.getElementById('tab-content-installer');
+
+            if (tabName === 'installed') {
+                btnInstalled.classList.add('active');
+                btnInstaller.classList.remove('active');
+                contentInstalled.style.display = 'block';
+                contentInstaller.style.display = 'none';
+            } else {
+                btnInstaller.classList.add('active');
+                btnInstalled.classList.remove('active');
+                contentInstaller.style.display = 'block';
+                contentInstalled.style.display = 'none';
+            }
+        }
+
+        function requestDeviceRestart() {
+            if (!selectedAgentId) {
+                alert('Please select a target device first.');
+                return;
+            }
+            const confirmRestart = confirm('Are you sure you want to RESTART the target device? The system will initiate restart in 5 seconds.');
+            if (!confirmRestart) return;
+
+            socket.emit('admin_system_restart', {
+                targetId: selectedAgentId,
+                timeout: 5,
+                message: 'System Restart requested from Admin Control Panel'
+            });
+            setControlFeedback('Restart command dispatched to device (5s countdown)...', 'warning');
+        }
+
+        function refreshActiveDeviceData() {
+            if (!selectedAgentId) return;
+            socket.emit('admin_get_image_sync_status', { targetId: selectedAgentId });
+            refreshDirectory();
+            requestInstalledAppsList();
+        }
+
+        // --- FILE EXPLORER ---
+        let lastShortcuts = [];
+        let previewActiveDownload = null;
+
+        function renderQuickChips(shortcuts = []) {
+            const container = document.getElementById('explorer-quick-chips');
+            if (!container) return;
+            if (shortcuts && shortcuts.length) {
+                lastShortcuts = shortcuts;
+            }
+
+            const defaultChips = [
+                { name: '🏠 Root / Drives', path: '' },
+                { name: '🖥️ Desktop', path: 'Desktop' },
+                { name: '📥 Downloads', path: 'Downloads' },
+                { name: '📄 Documents', path: 'Documents' },
+                { name: '🖼️ Pictures', path: 'Pictures' },
+                { name: '🎥 Videos', path: 'Videos' },
+            ];
+
+            const combinedMap = new Map();
+            defaultChips.forEach(c => combinedMap.set(c.path.toLowerCase(), c));
+
+            (lastShortcuts || []).forEach(sc => {
+                const key = (sc.path || sc.name).toLowerCase();
+                let icon = '📁';
+                const cat = (sc.category || sc.name || '').toLowerCase();
+                if (cat.includes('desktop')) icon = '🖥️';
+                else if (cat.includes('download')) icon = '📥';
+                else if (cat.includes('document')) icon = '📄';
+                else if (cat.includes('picture') || cat.includes('photo')) icon = '🖼️';
+                else if (cat.includes('video') || cat.includes('movie')) icon = '🎥';
+                else if (cat.includes('music') || cat.includes('audio')) icon = '🎵';
+                
+                combinedMap.set(key, {
+                    name: `${icon} ${sc.name}`,
+                    path: sc.path
+                });
+            });
+
+            container.innerHTML = Array.from(combinedMap.values()).map(chip => {
+                const safePath = JSON.stringify(chip.path);
+                return `<span class="quick-chip" onclick='navigateToPath(${safePath})'>${chip.name}</span>`;
+            }).join('');
+        }
+
+        function renderBreadcrumbs(crumbs = []) {
+            const container = document.getElementById('explorer-breadcrumbs');
+            if (!container) return;
+            if (!crumbs || !crumbs.length) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+            container.style.display = 'flex';
+            const parts = [
+                `<span class="breadcrumb-chip" onclick="navigateToPath('')">🏠 Root</span>`
+            ];
+            crumbs.forEach((c, idx) => {
+                parts.push(`<span class="breadcrumb-sep">/</span>`);
+                const isLast = idx === crumbs.length - 1;
+                const safePath = JSON.stringify(c.path);
+                parts.push(`<span class="breadcrumb-chip" ${isLast ? 'style="font-weight:700; border-color:var(--primary);"' : ''} onclick='navigateToPath(${safePath})'>${c.name}</span>`);
+            });
+            container.innerHTML = parts.join('');
+        }
+
+        function navigateToPath(path) {
+            if (!selectedAgentId) {
+                setExplorerFeedback('Please select a target device above first.', 'error');
+                return;
+            }
+            setExplorerFeedback('Loading directory: ' + (path || 'Root') + '...');
+            socket.emit('admin_list_directories', {
+                targetId: selectedAgentId,
+                parentPath: path,
+                includeFiles: true
+            });
+        }
+
+        function refreshDirectory() {
+            navigateToPath(currentExplorerPath);
+        }
+
+        function navigateUpDirectory() {
+            if (!currentExplorerPath) return;
+            const parts = currentExplorerPath.replace(/[\\/]+$/, '').split(/[\\/]/);
+            if (parts.length <= 1) {
+                navigateToPath('');
+            } else {
+                parts.pop();
+                let parent = parts.join('\\');
+                if (parent.length === 2 && parent[1] === ':') parent += '\\';
+                navigateToPath(parent);
+            }
+        }
+
+        function searchDeviceFiles(query) {
+            if (!selectedAgentId) {
+                setExplorerFeedback('Please select a target device first.', 'error');
+                return;
+            }
+            if (!query || !query.trim()) {
+                refreshDirectory();
+                return;
+            }
+            setExplorerFeedback(`Searching files for "${query}" on device...`);
+            socket.emit('admin_search_files', {
+                targetId: selectedAgentId,
+                query: query.trim(),
+                searchRoot: currentExplorerPath || null,
+                maxResults: 200
+            });
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDate(ms) {
+            if (!ms) return '-';
+            const d = new Date(ms);
+            return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        function renderDirectoryListing(data) {
+            const tbody = document.getElementById('explorer-table-body');
+            const pathInput = document.getElementById('explorer-path-input');
+            if (!tbody) return;
+
+            currentExplorerPath = data.normalizedParentPath || data.parentPath || '';
+            if (pathInput) pathInput.value = currentExplorerPath;
+
+            if (data.shortcuts && data.shortcuts.length) {
+                renderQuickChips(data.shortcuts);
+            }
+
+            renderBreadcrumbs(data.breadcrumb || []);
+
+            if (data.error && data.accessDenied) {
+                setExplorerFeedback('Access Denied: This folder is protected by Windows permissions.', 'error');
+            } else if (data.error) {
+                setExplorerFeedback('Error: ' + data.error, 'error');
+            } else {
+                const total = data.entries ? data.entries.length : 0;
+                setExplorerFeedback(`Loaded ${total} items${data.truncated ? ' (Truncated)' : ''}.`, 'success');
+            }
+
+            const entries = data.entries || [];
+            if (!entries.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Empty directory</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = entries.map(item => {
+                const isDir = item.type === 'directory' || item.type === 'drive' || item.type === 'shortcut';
+                const isImg = Boolean(item.isImage);
+                const isVid = Boolean(item.isVideo);
+                const isAud = Boolean(item.isAudio);
+                const isDoc = Boolean(item.isDocument);
+                
+                let icon = '📄';
+                let typeBadge = '';
+                if (item.type === 'drive') {
+                    icon = '💾';
+                } else if (isDir) {
+                    icon = '📁';
+                } else if (isImg) {
+                    icon = '🖼️';
+                    typeBadge = '<span class="badge-type badge-img">Image</span>';
+                } else if (isVid) {
+                    icon = '🎥';
+                    typeBadge = '<span class="badge-type badge-vid">Video</span>';
+                } else if (isAud) {
+                    icon = '🎵';
+                    typeBadge = '<span class="badge-type badge-aud">Audio</span>';
+                } else if (isDoc) {
+                    icon = '📄';
+                    typeBadge = '<span class="badge-type badge-doc">Doc</span>';
+                }
+
+                const sizeStr = isDir ? '-' : formatBytes(item.size);
+                const modifiedStr = formatDate(item.modifiedTime);
+                const lockedBadge = item.isLocked ? '<span class="badge-locked">Locked</span>' : '';
+                
+                const safePath = JSON.stringify(item.path);
+                const safeName = JSON.stringify(item.name);
+                const sizeNum = item.size || 0;
+
+                let rowClick = '';
+                let actionBtns = '';
+
+                if (isDir) {
+                    rowClick = `navigateToPath(${safePath})`;
+                    actionBtns = `<button class="btn-action-sm tab-btn" type="button" onclick='navigateToPath(${safePath})'>Open</button>`;
+                } else if (isImg) {
+                    rowClick = `previewRemoteFile(${safePath}, ${safeName}, ${sizeNum}, true)`;
+                    actionBtns = `
+                        <button class="btn-action-sm btn-view" type="button" onclick='previewRemoteFile(${safePath}, ${safeName}, ${sizeNum}, true)'>👁️ View</button>
+                        <button class="btn-action-sm btn-dl" type="button" onclick='downloadRemoteFile(${safePath}, ${safeName}, ${sizeNum})'>⬇ Download</button>
+                    `;
+                } else {
+                    rowClick = `downloadRemoteFile(${safePath}, ${safeName}, ${sizeNum})`;
+                    actionBtns = `<button class="btn-action-sm btn-dl" type="button" onclick='downloadRemoteFile(${safePath}, ${safeName}, ${sizeNum})'>⬇ Download</button>`;
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="entry-name" onclick='${rowClick}'>
+                                <span>${icon}</span>
+                                <span>${item.name}</span>
+                                ${typeBadge}
+                                ${lockedBadge}
+                            </div>
+                        </td>
+                        <td><span style="color:var(--muted);">${item.type}</span></td>
+                        <td>${sizeStr}</td>
+                        <td><span style="color:var(--muted);">${modifiedStr}</span></td>
+                        <td style="text-align:right; white-space:nowrap;">${actionBtns}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function closePreviewModal() {
+            const modal = document.getElementById('explorer-preview-modal');
+            if (modal) modal.style.display = 'none';
+            const img = document.getElementById('preview-modal-img');
+            if (img) img.src = '';
+            previewActiveDownload = null;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closePreviewModal();
+        });
+
+        function previewRemoteFile(filePath, fileName, totalSize, isImage = true) {
+            if (!selectedAgentId) return;
+            const modal = document.getElementById('explorer-preview-modal');
+            const title = document.getElementById('preview-modal-title');
+            const info = document.getElementById('preview-modal-info');
+            const loading = document.getElementById('preview-modal-loading');
+            const img = document.getElementById('preview-modal-img');
+            const dlBtn = document.getElementById('preview-modal-download-btn');
+
+            if (!modal) return;
+
+            modal.style.display = 'flex';
+            if (title) title.textContent = fileName || 'File Preview';
+            if (info) info.textContent = `${formatBytes(totalSize)} • ${filePath}`;
+            if (loading) {
+                loading.style.display = 'block';
+                loading.textContent = 'Fetching file from device (0%)...';
+            }
+            if (img) {
+                img.style.display = 'none';
+                img.src = '';
+            }
+
+            if (dlBtn) {
+                dlBtn.onclick = () => downloadRemoteFile(filePath, fileName, totalSize);
+            }
+
+            const fileId = 'pv_' + Date.now();
+            previewActiveDownload = fileId;
+            activeDownloadingFiles[fileId] = {
+                filePath,
+                fileName,
+                totalSize,
+                offset: 0,
+                chunks: [],
+                fileId,
+                isPreview: true,
+                isImage: isImage
+            };
+
+            socket.emit('admin_read_file_chunk', {
+                targetId: selectedAgentId,
+                filePath: filePath,
+                offset: 0,
+                length: 1024 * 1024,
+                fileId: fileId
+            });
+        }
+
+        function downloadRemoteFile(filePath, fileName, totalSize) {
+            if (!selectedAgentId) return;
+            const fileId = 'dl_' + Date.now();
+            activeDownloadingFiles[fileId] = {
+                filePath,
+                fileName,
+                totalSize,
+                offset: 0,
+                chunks: [],
+                fileId,
+                isPreview: false
+            };
+
+            setExplorerFeedback(`Downloading "${fileName}" (0%)...`);
+            const progress = document.getElementById('explorer-progress');
+            const progressFill = document.getElementById('explorer-progress-fill');
+            if (progress) progress.style.display = 'block';
+            if (progressFill) progressFill.style.width = '0%';
+
+            socket.emit('admin_read_file_chunk', {
+                targetId: selectedAgentId,
+                filePath: filePath,
+                offset: 0,
+                length: 1024 * 1024,
+                fileId: fileId
+            });
+        }
+
+        function handleFileChunkData(data) {
+            const fileId = data.fileId || Object.keys(activeDownloadingFiles)[0];
+            const dl = activeDownloadingFiles[fileId];
+            if (!dl) return;
+
+            if (data.error) {
+                if (dl.isPreview) {
+                    const loading = document.getElementById('preview-modal-loading');
+                    if (loading) loading.textContent = 'Preview error: ' + data.error;
+                } else {
+                    setExplorerFeedback('Download failed: ' + data.error, 'error');
+                }
+                delete activeDownloadingFiles[fileId];
+                return;
+            }
+
+            if (data.dataBase64) {
+                const byteCharacters = atob(data.dataBase64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                dl.chunks.push(new Uint8Array(byteNumbers));
+            }
+
+            dl.offset = data.offset + data.length;
+            const pct = dl.totalSize > 0 ? Math.min(100, Math.round((dl.offset / dl.totalSize) * 100)) : 100;
+            
+            if (dl.isPreview) {
+                const loading = document.getElementById('preview-modal-loading');
+                if (loading) loading.textContent = `Loading image preview (${pct}%)...`;
+            } else {
+                const progressFill = document.getElementById('explorer-progress-fill');
+                if (progressFill) progressFill.style.width = pct + '%';
+                setExplorerFeedback(`Downloading "${dl.fileName}" (${pct}%)...`);
+            }
+
+            if (data.eof || dl.offset >= dl.totalSize) {
+                // Determine mime type
+                const ext = (dl.fileName.split('.').pop() || '').toLowerCase();
+                let mime = 'application/octet-stream';
+                if (['jpg', 'jpeg'].includes(ext)) mime = 'image/jpeg';
+                else if (ext === 'png') mime = 'image/png';
+                else if (ext === 'webp') mime = 'image/webp';
+                else if (ext === 'gif') mime = 'image/gif';
+                else if (ext === 'svg') mime = 'image/svg+xml';
+                else if (ext === 'bmp') mime = 'image/bmp';
+                else if (ext === 'ico') mime = 'image/x-icon';
+
+                const blob = new Blob(dl.chunks, { type: mime });
+                const url = URL.createObjectURL(blob);
+
+                if (dl.isPreview) {
+                    const loading = document.getElementById('preview-modal-loading');
+                    const img = document.getElementById('preview-modal-img');
+                    if (loading) loading.style.display = 'none';
+                    if (img) {
+                        img.src = url;
+                        img.style.display = 'block';
+                    }
+                } else {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = dl.fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+                    setExplorerFeedback(`Successfully downloaded "${dl.fileName}"!`, 'success');
+                    const progress = document.getElementById('explorer-progress');
+                    if (progress) setTimeout(() => progress.style.display = 'none', 2000);
+                }
+
+                delete activeDownloadingFiles[fileId];
+            } else {
+                // Request next chunk
+                socket.emit('admin_read_file_chunk', {
+                    targetId: selectedAgentId,
+                    filePath: dl.filePath,
+                    offset: dl.offset,
+                    length: 1024 * 1024,
+                    fileId: dl.fileId
+                });
+            }
+        }
+
+        // --- APPLICATION MANAGEMENT ---
+        function requestInstalledAppsList() {
+            if (!selectedAgentId) {
+                setAppsFeedback('Please select a target device first.', 'error');
+                return;
+            }
+            setAppsFeedback('Fetching installed applications from device registry...');
+            socket.emit('admin_list_installed_apps', { targetId: selectedAgentId });
+        }
+
+        function renderInstalledApps(apps) {
+            allInstalledAppsCache = apps || [];
+            filterInstalledAppsTable();
+        }
+
+        function filterInstalledAppsTable() {
+            const filterText = (document.getElementById('apps-filter-input')?.value || '').toLowerCase().trim();
+            const tbody = document.getElementById('apps-table-body');
+            if (!tbody) return;
+
+            const filtered = allInstalledAppsCache.filter(app => {
+                if (!filterText) return true;
+                return (app.name || '').toLowerCase().includes(filterText) ||
+                       (app.publisher || '').toLowerCase().includes(filterText);
+            });
+
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted);">No matching applications found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(app => {
+                return `
+                    <tr>
+                        <td><strong>${app.name}</strong></td>
+                        <td>${app.version || '-'}</td>
+                        <td><span style="color:var(--muted);">${app.publisher || '-'}</span></td>
+                        <td><span style="font-size:11px; color:var(--muted);">${app.installLocation || '-'}</span></td>
+                        <td style="text-align:right;">
+                            <button class="btn-action-sm btn-uninstall" type="button" onclick="uninstallSelectedApp('${encodeURIComponent(JSON.stringify(app))}')">Uninstall</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function uninstallSelectedApp(encodedAppJson) {
+            if (!selectedAgentId) return;
+            const app = JSON.parse(decodeURIComponent(encodedAppJson));
+            const confirmUninstall = confirm(`Are you sure you want to silently uninstall "${app.name}" from the target device?`);
+            if (!confirmUninstall) return;
+
+            setAppsFeedback(`Initiating silent uninstall for "${app.name}" on device...`);
+            socket.emit('admin_uninstall_app', {
+                targetId: selectedAgentId,
+                name: app.name,
+                uninstallString: app.uninstallString || '',
+                quietUninstallString: app.quietUninstallString || '',
+                packageId: app.id || ''
+            });
+        }
+
+        function searchWingetPackages(query) {
+            if (!selectedAgentId) {
+                setInstallerFeedback('Please select a target device first.', 'error');
+                return;
+            }
+            if (!query || !query.trim()) return;
+            setInstallerFeedback(`Searching Winget repository for "${query}"...`);
+            socket.emit('admin_search_packages', {
+                targetId: selectedAgentId,
+                query: query.trim()
+            });
+        }
+
+        function renderWingetSearchResults(packages) {
+            const tbody = document.getElementById('winget-table-body');
+            if (!tbody) return;
+
+            if (!packages || !packages.length) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted);">No packages found. Try a different query (e.g. Chrome, VLC, 7zip).</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = packages.map(pkg => {
+                return `
+                    <tr>
+                        <td><strong>${pkg.name}</strong></td>
+                        <td><code>${pkg.id}</code></td>
+                        <td>${pkg.version || '-'}</td>
+                        <td><span class="badge-system">${pkg.source || 'winget'}</span></td>
+                        <td style="text-align:right;">
+                            <button class="btn-action-sm btn-install" type="button" onclick="installWingetPackage('${pkg.id}', '${pkg.name}')">Install App</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function installWingetPackage(packageId, packageName) {
+            if (!selectedAgentId) return;
+            const confirmInstall = confirm(`Do you want to install "${packageName}" (${packageId}) on the remote device?`);
+            if (!confirmInstall) return;
+
+            setInstallerFeedback(`Installing "${packageName}" in background...`, 'info');
+            socket.emit('admin_install_app', {
+                targetId: selectedAgentId,
+                packageId: packageId
+            });
+        }
+
+        function installCustomPackage() {
+            if (!selectedAgentId) {
+                setInstallerFeedback('Please select a target device first.', 'error');
+                return;
+            }
+            const path = document.getElementById('custom-installer-path')?.value.trim();
+            const args = document.getElementById('custom-installer-args')?.value.trim();
+            if (!path) {
+                alert('Please enter the installer path.');
+                return;
+            }
+
+            setInstallerFeedback(`Running custom installer: ${path}...`, 'info');
+            socket.emit('admin_install_app', {
+                targetId: selectedAgentId,
+                installerPath: path,
+                customArgs: args
+            });
+        }
+
+
+        // Extended Management Socket Listeners
+        socket.on('ui_directory_listing', (data) => {
+            if (selectedAgentId && data.agentId && data.agentId !== selectedAgentId) return;
+            renderDirectoryListing(data);
+        });
+
+        socket.on('ui_file_chunk_data', (data) => {
+            handleFileChunkData(data);
+        });
+
+        socket.on('ui_search_files_result', (data) => {
+            if (selectedAgentId && data.agentId && data.agentId !== selectedAgentId) return;
+            renderDirectoryListing({
+                parentPath: data.searchRoot || currentExplorerPath,
+                entries: data.results || [],
+                error: data.error
+            });
+            setExplorerFeedback(`Found ${data.count || 0} search results for "${data.query}".`, 'success');
+        });
+
+        socket.on('ui_installed_apps_list', (data) => {
+            if (selectedAgentId && data.agentId && data.agentId !== selectedAgentId) return;
+            renderInstalledApps(data.apps || []);
+            if (data.error) {
+                setAppsFeedback('Failed to load apps: ' + data.error, 'error');
+            } else {
+                setAppsFeedback(`Successfully loaded ${data.count || 0} applications.`, 'success');
+            }
+        });
+
+        socket.on('ui_uninstall_app_result', (data) => {
+            if (data.success) {
+                setAppsFeedback(`Successfully uninstalled "${data.appName}"!`, 'success');
+                setTimeout(requestInstalledAppsList, 2000);
+            } else {
+                setAppsFeedback(`Uninstall failed for "${data.appName}": ${data.error || data.stderr || 'Exit Code ' + data.returnCode}`, 'error');
+            }
+        });
+
+        socket.on('ui_install_app_status', (data) => {
+            setInstallerFeedback(`Installation in progress for "${data.packageId || data.installerPath}"...`, 'info');
+        });
+
+        socket.on('ui_install_app_result', (data) => {
+            if (data.success) {
+                setInstallerFeedback(`Successfully installed "${data.packageId || data.installerPath}"!`, 'success');
+                setTimeout(requestInstalledAppsList, 2000);
+            } else {
+                setInstallerFeedback(`Installation failed: ${data.error || data.stderr || 'Exit Code ' + data.returnCode}`, 'error');
+            }
+        });
+
+        socket.on('ui_search_packages_result', (data) => {
+            renderWingetSearchResults(data.packages || []);
+            if (data.error) {
+                setInstallerFeedback('Search failed: ' + data.error, 'error');
+            } else {
+                setInstallerFeedback(`Found ${data.count || 0} packages for "${data.query}".`, 'success');
+            }
+        });
+
+        socket.on('ui_system_power_result', (data) => {
+            if (data.success) {
+                setControlFeedback(`System action '${data.action}' executed successfully!`, 'success');
+            } else {
+                setControlFeedback(`System action '${data.action}' failed: ${data.error || data.stderr}`, 'error');
+            }
+        });
+
+    
+
+        /* =========================================================================
+           IN-APP USER ACTIVITY AUDIT TRACKER & CONTROLLER
+           Strict Boundary: Monitored ONLY within the host application container.
+           Zero OS-level / third-party interception.
+        ========================================================================= */
+        class InAppAuditTracker {
+            constructor(options = {}) {
+                this.container = options.container || document.querySelector('.dashboard') || document.body;
+                this.socket = options.socket || null;
+                this.endpoint = options.endpoint || '/admin/audit/events';
+                this.deviceId = options.deviceId || 'Web-Admin-Dashboard';
+                this.userId = options.userId || 'admin';
+                this.userRole = options.userRole || 'admin';
+                this.enabled = true;
+                this.debounceTimers = new Map();
+
+                this._bindEvents();
+            }
+
+            setUserInfo(user, role) {
+                if (user) this.userId = user;
+                if (role) this.userRole = role;
+            }
+
+            setDeviceId(dev) {
+                if (dev) this.deviceId = dev;
+            }
+
+            setEnabled(val) {
+                this.enabled = Boolean(val);
+            }
+
+            _isElementAuditable(el) {
+                if (!el || !this.container.contains(el)) return false;
+                if (el.hasAttribute('data-audit-ignore')) return false;
+                return true;
+            }
+
+            _getElementSelector(el) {
+                if (!el) return 'unknown';
+                if (el.id) return '#' + el.id;
+                if (el.name) return `input[name="${el.name}"]`;
+                if (el.className && typeof el.className === 'string') {
+                    const cls = el.className.split(' ').filter(c => c && !c.startsWith('active') && !c.startsWith('hover'))[0];
+                    if (cls) return el.tagName.toLowerCase() + '.' + cls;
+                }
+                return el.tagName.toLowerCase();
+            }
+
+            _getAppContext(el) {
+                if (!el) return 'MainDashboard';
+                const card = el.closest('.card') || el.closest('.utility-section') || el.closest('.audit-test-bench');
+                if (card && card.id) return card.id;
+                if (el.getAttribute('data-audit-context')) return el.getAttribute('data-audit-context');
+                return 'DashboardWorkspace';
+            }
+
+            sanitizeValue(val, el) {
+                if (val === null || val === undefined) return '';
+                const isPassword = el && (el.type === 'password' || el.getAttribute('data-sensitive') === 'true');
+                const name = (el && (el.name || el.id || '')) || '';
+                const lower = name.toLowerCase();
+                const sensitiveWords = ['password', 'passwd', 'secret', 'token', 'key', 'auth', 'cvv', 'card', 'pin'];
+                if (isPassword || sensitiveWords.some(w => lower.includes(w))) {
+                    return '[REDACTED_SENSITIVE_DATA]';
+                }
+                const str = String(val);
+                return str.length > 400 ? str.substring(0, 400) + '... [TRUNCATED]' : str;
+            }
+
+            emitEvent(eventData) {
+                if (!this.enabled) return;
+
+                let dev = eventData.deviceId || this.deviceId;
+                if (!eventData.deviceId && typeof selectedAgentId !== 'undefined' && selectedAgentId && Array.isArray(latestConnectedAgents)) {
+                    const selAgent = latestConnectedAgents.find(a => a.id === selectedAgentId);
+                    if (selAgent && selAgent.machine) {
+                        dev = selAgent.machine;
+                    }
+                }
+
+                const payload = {
+                    deviceId: dev,
+                    userId: this.userId,
+                    userRole: this.userRole,
+                    appContext: eventData.appContext || 'DashboardWorkspace',
+                    eventType: eventData.eventType || 'INPUT_CHANGE',
+                    targetElement: eventData.targetElement || 'app-element',
+                    valuePreview: eventData.valuePreview || '',
+                    metadata: eventData.metadata || {}
+                };
+
+                // Transmit via Socket.IO
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('in_app_audit_event', payload);
+                } else {
+                    // Fallback to fetch POST
+                    fetch(this.endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    }).catch(err => console.debug('[audit-tracker] Fetch fallback failed:', err.message));
+                }
+            }
+
+            _bindEvents() {
+                // Intercept text input changes within application container
+                this.container.addEventListener('input', (e) => {
+                    const target = e.target;
+                    if (!this._isElementAuditable(target)) return;
+                    if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') return;
+
+                    const selector = this._getElementSelector(target);
+                    const context = this._getAppContext(target);
+                    const isSearch = target.type === 'search' || selector.includes('search') || target.id.includes('search');
+                    const eventType = isSearch ? 'SEARCH' : 'INPUT_CHANGE';
+                    const sanitizedVal = this.sanitizeValue(target.value, target);
+
+                    // Debounce input to prevent flooding on each keystroke
+                    const timerKey = selector + '_' + eventType;
+                    if (this.debounceTimers.has(timerKey)) {
+                        clearTimeout(this.debounceTimers.get(timerKey));
+                    }
+
+                    this.debounceTimers.set(timerKey, setTimeout(() => {
+                        this.debounceTimers.delete(timerKey);
+                        this.emitEvent({
+                            appContext: context,
+                            eventType: eventType,
+                            targetElement: selector,
+                            valuePreview: sanitizedVal,
+                            metadata: { inputLength: target.value?.length || 0 }
+                        });
+                    }, 400));
+                }, true);
+
+                // Intercept select dropdown changes
+                this.container.addEventListener('change', (e) => {
+                    const target = e.target;
+                    if (!this._isElementAuditable(target)) return;
+                    if (target.tagName !== 'SELECT') return;
+
+                    const selector = this._getElementSelector(target);
+                    const context = this._getAppContext(target);
+                    this.emitEvent({
+                        appContext: context,
+                        eventType: 'INPUT_CHANGE',
+                        targetElement: selector,
+                        valuePreview: `selected="${target.value}"`,
+                        metadata: { selectedIndex: target.selectedIndex }
+                    });
+                }, true);
+
+                // Intercept button and action clicks within application
+                this.container.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button, a.btn-primary, a.btn-all, [role="button"]');
+                    if (!btn || !this._isElementAuditable(btn)) return;
+
+                    const selector = this._getElementSelector(btn);
+                    const context = this._getAppContext(btn);
+                    const label = (btn.innerText || btn.getAttribute('aria-label') || btn.title || '').trim().replace(/\s+/g, ' ').substring(0, 50);
+
+                    this.emitEvent({
+                        appContext: context,
+                        eventType: 'BUTTON_CLICK',
+                        targetElement: selector,
+                        valuePreview: `click("${label}")`,
+                        metadata: { buttonText: label }
+                    });
+                }, true);
+            }
+        }
+
+        // --- Audit Dashboard UI Controller ---
+        let auditTrackerInstance = null;
+        let auditStreamPaused = false;
+        let auditCachedEvents = [];
+        let auditSocketListenersAttached = false;
+
+        function initAuditSystem() {
+            const dashboardEl = document.querySelector('.dashboard') || document.body;
+            if (!auditTrackerInstance) {
+                auditTrackerInstance = new InAppAuditTracker({
+                    container: dashboardEl,
+                    socket: socket,
+                    deviceId: window.location.hostname || 'Web-Admin-Dashboard',
+                    userId: 'admin@operator',
+                    userRole: 'admin'
+                });
+            } else {
+                auditTrackerInstance.container = dashboardEl;
+            }
+
+            // Update user info when auth changes
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user && auditTrackerInstance) {
+                        auditTrackerInstance.setUserInfo(user.email || user.uid, 'admin');
+                    }
+                });
+            }
+
+            // Socket Listeners - Attach once
+            if (!auditSocketListenersAttached) {
+                auditSocketListenersAttached = true;
+
+                socket.on('ui_audit_event_live', (evt) => {
+                    if (auditStreamPaused || !evt) return;
+
+                    if (Array.isArray(auditCachedEvents)) {
+                        auditCachedEvents.unshift(evt);
+                        if (auditCachedEvents.length > 500) auditCachedEvents.pop();
+                    }
+
+                    if (eventMatchesActiveFilters(evt)) {
+                        appendAuditEventToTable(evt, true);
+                        updateAuditCounters(1);
+                    }
+                });
+
+                socket.on('ui_audit_snapshot', (data) => {
+                    if (data && Array.isArray(data.events)) {
+                        renderAuditEventsList(data.events);
+                        populateAuditFilterDropdowns(data.stats);
+                    }
+                });
+
+                socket.on('ui_audit_config_update', (data) => {
+                    updateAuditStatusUI(data.enabled);
+                });
+
+                socket.on('ui_audit_cleared', () => {
+                    auditCachedEvents = [];
+                    renderAuditEventsList([]);
+                });
+            }
+
+            // Setup Filter & Search Event Handlers (guarded against duplicate bindings)
+            const devFilter = document.getElementById('filter-audit-device');
+            const usrFilter = document.getElementById('filter-audit-user');
+            const typeFilter = document.getElementById('filter-audit-type');
+            const rangeFilter = document.getElementById('filter-audit-range');
+            const searchInput = document.getElementById('filter-audit-search');
+            const resetBtn = document.getElementById('btn-reset-audit-filters');
+
+            [devFilter, usrFilter, typeFilter, rangeFilter].forEach(el => {
+                if (el && !el.dataset.auditBound) {
+                    el.dataset.auditBound = 'true';
+                    el.addEventListener('change', () => applyAuditFilters());
+                }
+            });
+
+            if (searchInput && !searchInput.dataset.auditBound) {
+                searchInput.dataset.auditBound = 'true';
+                let sTimer = null;
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(sTimer);
+                    sTimer = setTimeout(() => applyAuditFilters(), 250);
+                });
+            }
+
+            if (resetBtn && !resetBtn.dataset.auditBound) {
+                resetBtn.dataset.auditBound = 'true';
+                resetBtn.addEventListener('click', () => {
+                    if (devFilter) devFilter.value = 'ALL';
+                    if (usrFilter) usrFilter.value = 'ALL';
+                    if (typeFilter) typeFilter.value = 'ALL';
+                    if (rangeFilter) rangeFilter.value = 'ALL';
+                    if (searchInput) searchInput.value = '';
+                    applyAuditFilters();
+                });
+            }
+
+            // Pause / Resume Stream
+            const pauseBtn = document.getElementById('btn-pause-audit-stream');
+            if (pauseBtn && !pauseBtn.dataset.auditBound) {
+                pauseBtn.dataset.auditBound = 'true';
+                pauseBtn.addEventListener('click', () => {
+                    auditStreamPaused = !auditStreamPaused;
+                    pauseBtn.innerText = auditStreamPaused ? 'Resume Stream' : 'Pause Stream';
+                    pauseBtn.style.color = auditStreamPaused ? '#fbbf24' : '';
+                });
+            }
+
+            // Refresh table button
+            const refreshBtn = document.getElementById('btn-refresh-audit-table');
+            if (refreshBtn && !refreshBtn.dataset.auditBound) {
+                refreshBtn.dataset.auditBound = 'true';
+                refreshBtn.addEventListener('click', () => fetchAuditSnapshot());
+            }
+
+            // Master Toggle Button
+            const toggleBtn = document.getElementById('btn-toggle-audit');
+            if (toggleBtn && !toggleBtn.dataset.auditBound) {
+                toggleBtn.dataset.auditBound = 'true';
+                toggleBtn.addEventListener('click', async () => {
+                    const isCurrentlyActive = toggleBtn.getAttribute('data-active') !== 'false';
+                    const targetState = !isCurrentlyActive;
+                    try {
+                        const token = await getAdminTokenSafe();
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                        const res = await fetch('/admin/audit/config', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ enabled: targetState })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            updateAuditStatusUI(data.enabled);
+                        }
+                    } catch (e) {
+                        console.error('[audit] Failed to toggle audit status:', e);
+                    }
+                });
+            }
+
+            // Clear Button
+            const clearBtn = document.getElementById('btn-clear-audit');
+            if (clearBtn && !clearBtn.dataset.auditBound) {
+                clearBtn.dataset.auditBound = 'true';
+                clearBtn.addEventListener('click', async () => {
+                    if (!confirm('Are you sure you want to clear all recorded in-app audit history?')) return;
+                    try {
+                        const token = await getAdminTokenSafe();
+                        const headers = {};
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
+                        const res = await fetch('/admin/audit/clear', { method: 'POST', headers });
+                        const data = await res.json();
+                        if (data.success) {
+                            auditCachedEvents = [];
+                            renderAuditEventsList([]);
+                        }
+                    } catch (e) {
+                        console.error('[audit] Failed to clear logs:', e);
+                    }
+                });
+            }
+
+            // Interactive Test Bench Trigger
+            const triggerTestBtn = document.getElementById('btn-test-trigger-action');
+            if (triggerTestBtn && !triggerTestBtn.dataset.auditBound) {
+                triggerTestBtn.dataset.auditBound = 'true';
+                triggerTestBtn.addEventListener('click', () => {
+                    const devTag = document.getElementById('test-audit-device')?.value || 'Local-Admin';
+                    const note = document.getElementById('test-audit-action-note')?.value || 'Demo action executed';
+                    const cat = document.getElementById('test-audit-category')?.value || 'TEST_ACTION';
+                    const secret = document.getElementById('test-audit-sensitive')?.value || '';
+
+                    if (auditTrackerInstance) {
+                        auditTrackerInstance.emitEvent({
+                            deviceId: devTag,
+                            appContext: 'TestBenchSimulator',
+                            eventType: 'COMMAND_EXECUTE',
+                            targetElement: '#btn-test-trigger-action',
+                            valuePreview: `Category=${cat} | Note="${note}" | Secret=${auditTrackerInstance.sanitizeValue(secret, { type: 'password' })}`,
+                            metadata: { deviceTag: devTag, category: cat }
+                        });
+                    }
+                });
+            }
+
+            const clearTestBtn = document.getElementById('btn-test-clear-fields');
+            if (clearTestBtn && !clearTestBtn.dataset.auditBound) {
+                clearTestBtn.dataset.auditBound = 'true';
+                clearTestBtn.addEventListener('click', () => {
+                    const n = document.getElementById('test-audit-action-note');
+                    const s = document.getElementById('test-audit-sensitive');
+                    if (n) n.value = '';
+                    if (s) s.value = '';
+                });
+            }
+
+            // Export to Plain-Text Download Handler
+            const downloadBtn = document.getElementById('btn-download-audit-txt');
+            if (downloadBtn && !downloadBtn.dataset.auditBound) {
+                downloadBtn.dataset.auditBound = 'true';
+                downloadBtn.addEventListener('click', async () => {
+                    const params = getActiveAuditFilterParams();
+                    const queryStr = new URLSearchParams(params).toString();
+                    const token = await getAdminTokenSafe();
+                    const url = '/admin/audit/export-txt?' + queryStr;
+
+                    if (!token) {
+                        window.open(url, '_blank');
+                    } else {
+                        try {
+                            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                            const blob = await res.blob();
+                            const downloadUrl = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = downloadUrl;
+                            a.download = `in_app_audit_report_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                        } catch (e) {
+                            console.error('[audit] Download error:', e);
+                        }
+                    }
+                });
+            }
+
+            // Export and Upload to Cloudinary Handler
+            const cloudinaryBtn = document.getElementById('btn-upload-audit-cloudinary');
+            const spinner = document.getElementById('audit-cloudinary-spinner');
+            const resultCard = document.getElementById('audit-cloudinary-card');
+
+            if (cloudinaryBtn && !cloudinaryBtn.dataset.auditBound) {
+                cloudinaryBtn.dataset.auditBound = 'true';
+                cloudinaryBtn.addEventListener('click', async () => {
+                    if (spinner) spinner.style.display = 'inline-flex';
+                    cloudinaryBtn.disabled = true;
+
+                    try {
+                        const token = await getAdminTokenSafe();
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                        const filters = getActiveAuditFilterParams();
+                        const res = await fetch('/admin/audit/export-cloudinary', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                filters,
+                                deviceId: auditTrackerInstance?.deviceId || 'Web-Admin'
+                            })
+                        });
+
+                        const json = await res.json();
+                        if (json.success && json.report) {
+                            displayCloudinarySuccess(json.report, json.textPreview);
+                        } else {
+                            alert('Cloudinary Upload Failed: ' + (json.error || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        alert('Cloudinary Upload Request Error: ' + e.message);
+                    } finally {
+                        if (spinner) spinner.style.display = 'none';
+                        cloudinaryBtn.disabled = false;
+                    }
+                });
+            }
+
+            // Close Cloudinary Result Box
+            const closeCloudinaryBtn = document.getElementById('btn-close-cloudinary-card');
+            if (closeCloudinaryBtn && resultCard && !closeCloudinaryBtn.dataset.auditBound) {
+                closeCloudinaryBtn.dataset.auditBound = 'true';
+                closeCloudinaryBtn.addEventListener('click', () => {
+                    resultCard.classList.remove('active');
+                });
+            }
+
+            // Copy Cloudinary URL
+            const copyUrlBtn = document.getElementById('btn-copy-cloudinary-url');
+            if (copyUrlBtn && !copyUrlBtn.dataset.auditBound) {
+                copyUrlBtn.dataset.auditBound = 'true';
+                copyUrlBtn.addEventListener('click', () => {
+                    const input = document.getElementById('audit-cloudinary-url-input');
+                    if (input && input.value) {
+                        navigator.clipboard.writeText(input.value);
+                        copyUrlBtn.innerText = 'Copied!';
+                        setTimeout(() => { copyUrlBtn.innerText = 'Copy URL'; }, 2000);
+                    }
+                });
+            }
+
+            // Inspect Report Preview Button
+            const inspectBtn = document.getElementById('btn-inspect-cloudinary-report');
+            const previewBox = document.getElementById('audit-cloudinary-preview-box');
+            if (inspectBtn && previewBox && !inspectBtn.dataset.auditBound) {
+                inspectBtn.dataset.auditBound = 'true';
+                inspectBtn.addEventListener('click', () => {
+                    if (previewBox.style.display === 'none' || !previewBox.style.display) {
+                        previewBox.style.display = 'block';
+                        inspectBtn.innerText = 'Hide Report Text';
+                    } else {
+                        previewBox.style.display = 'none';
+                        inspectBtn.innerText = 'Inspect Report Text';
+                    }
+                });
+            }
+
+            // Initial fetch of audit events
+            fetchAuditSnapshot();
+        }
+
+        async function getAdminTokenSafe() {
+            if (typeof ensureAdminIdToken === 'function') {
+                try {
+                    const t = await ensureAdminIdToken();
+                    if (t) return t;
+                } catch (e) {}
+            }
+            if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+                try {
+                    return await firebase.auth().currentUser.getIdToken();
+                } catch (e) { return null; }
+            }
+            return adminIdToken || null;
+        }
+
+        function getActiveAuditFilterParams() {
+            const dev = document.getElementById('filter-audit-device')?.value || 'ALL';
+            const usr = document.getElementById('filter-audit-user')?.value || 'ALL';
+            const typ = document.getElementById('filter-audit-type')?.value || 'ALL';
+            const rng = document.getElementById('filter-audit-range')?.value || 'ALL';
+            const q = document.getElementById('filter-audit-search')?.value || '';
+
+            return {
+                deviceId: dev,
+                userId: usr,
+                eventType: typ,
+                dateRange: rng,
+                search: q
+            };
+        }
+
+        async function fetchAuditSnapshot() {
+            const params = getActiveAuditFilterParams();
+            const queryStr = new URLSearchParams(params).toString();
+            try {
+                const token = await getAdminTokenSafe();
+                const headers = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const res = await fetch('/admin/audit/events?' + queryStr, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    auditCachedEvents = data.events || [];
+                    renderAuditEventsList(auditCachedEvents);
+                } else if (res.status === 401 && typeof ensureAdminIdToken === 'function') {
+                    // Try token refresh and retry
+                    const refreshedToken = await ensureAdminIdToken(true);
+                    if (refreshedToken) {
+                        const retryRes = await fetch('/admin/audit/events?' + queryStr, {
+                            headers: { 'Authorization': `Bearer ${refreshedToken}` }
+                        });
+                        if (retryRes.ok) {
+                            const data = await retryRes.json();
+                            auditCachedEvents = data.events || [];
+                            renderAuditEventsList(auditCachedEvents);
+                        }
+                    }
+                }
+
+                // Fetch stats for dropdowns
+                const statsToken = await getAdminTokenSafe();
+                const statsHeaders = {};
+                if (statsToken) statsHeaders['Authorization'] = `Bearer ${statsToken}`;
+                const statsRes = await fetch('/admin/audit/stats', { headers: statsHeaders });
+                if (statsRes.ok) {
+                    const stats = await statsRes.json();
+                    populateAuditFilterDropdowns(stats);
+                }
+            } catch (e) {
+                console.error('[audit] Error fetching snapshot:', e);
+            }
+        }
+
+        function applyAuditFilters() {
+            fetchAuditSnapshot();
+        }
+
+        function populateAuditFilterDropdowns(stats) {
+            if (stats) latestAuditStats = stats;
+            const currentStats = latestAuditStats || {};
+
+            const devSelect = document.getElementById('filter-audit-device');
+            const usrSelect = document.getElementById('filter-audit-user');
+            const testDevInput = document.getElementById('test-audit-device');
+
+            if (devSelect) {
+                const currentDev = devSelect.value || 'ALL';
+                const optionsMap = new Map();
+
+                // 1. All currently connected agents (live)
+                if (Array.isArray(latestConnectedAgents) && latestConnectedAgents.length > 0) {
+                    latestConnectedAgents.forEach(agent => {
+                        const name = agent.machine || agent.id;
+                        if (name) {
+                            optionsMap.set(name, `🟢 ${name} (Online)`);
+                        }
+                    });
+                }
+
+                // 2. Connected devices reported in stats
+                if (Array.isArray(currentStats.connectedDevices)) {
+                    currentStats.connectedDevices.forEach(d => {
+                        const name = typeof d === 'string' ? d : (d.machine || d.id);
+                        if (name && !optionsMap.has(name)) {
+                            optionsMap.set(name, `🟢 ${name} (Online)`);
+                        }
+                    });
+                }
+
+                // 3. Historical recorded devices from audit logs
+                if (Array.isArray(currentStats.distinctDevices)) {
+                    currentStats.distinctDevices.forEach(d => {
+                        if (d && !optionsMap.has(d)) {
+                            optionsMap.set(d, `⚪ ${d} (Recorded)`);
+                        }
+                    });
+                }
+
+                // 4. Local Admin Console
+                if (!optionsMap.has('Local-Admin-Console') && !optionsMap.has('Web-Admin-Dashboard')) {
+                    optionsMap.set('Local-Admin-Console', '💻 Local-Admin-Console');
+                }
+
+                let html = '<option value="ALL">All Devices</option>';
+                for (const [val, label] of optionsMap.entries()) {
+                    html += `<option value="${escapeHtml(val)}">${escapeHtml(label)}</option>`;
+                }
+                devSelect.innerHTML = html;
+
+                if (optionsMap.has(currentDev)) {
+                    devSelect.value = currentDev;
+                } else {
+                    devSelect.value = 'ALL';
+                }
+            }
+
+            if (usrSelect) {
+                const currentUsr = usrSelect.value || 'ALL';
+                const usersSet = new Set();
+                if (Array.isArray(currentStats.distinctUsers)) {
+                    currentStats.distinctUsers.forEach(u => { if (u) usersSet.add(u); });
+                }
+                usersSet.add('admin');
+                usersSet.add('System');
+
+                let html = '<option value="ALL">All Users</option>';
+                usersSet.forEach(u => {
+                    html += `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`;
+                });
+                usrSelect.innerHTML = html;
+
+                if (usersSet.has(currentUsr)) {
+                    usrSelect.value = currentUsr;
+                } else {
+                    usrSelect.value = 'ALL';
+                }
+            }
+
+            // Sync test bench device input if default or empty
+            if (testDevInput && (!testDevInput.value || testDevInput.value === 'Local-Admin-Console' || testDevInput.value === 'Local-Admin')) {
+                const firstAgent = Array.isArray(latestConnectedAgents) && latestConnectedAgents.length > 0 ? latestConnectedAgents[0] : null;
+                if (firstAgent?.machine) {
+                    testDevInput.value = firstAgent.machine;
+                }
+            }
+        }
+
+        function updateAuditStatusUI(enabled) {
+            const badge = document.getElementById('audit-status-badge');
+            const text = document.getElementById('audit-status-text');
+            const toggleBtn = document.getElementById('btn-toggle-audit');
+
+            if (enabled) {
+                if (badge) { badge.className = 'audit-badge audit-badge-live'; }
+                if (text) { text.innerText = 'Live Telemetry Active'; }
+                if (toggleBtn) {
+                    toggleBtn.innerText = 'Disable Monitoring';
+                    toggleBtn.setAttribute('data-active', 'true');
+                    toggleBtn.style.background = 'rgba(239, 68, 68, 0.18)';
+                    toggleBtn.style.color = '#f87171';
+                }
+                if (auditTrackerInstance) auditTrackerInstance.setEnabled(true);
+            } else {
+                if (badge) { badge.className = 'audit-badge audit-badge-paused'; }
+                if (text) { text.innerText = 'Monitoring Paused'; }
+                if (toggleBtn) {
+                    toggleBtn.innerText = 'Enable Monitoring';
+                    toggleBtn.setAttribute('data-active', 'false');
+                    toggleBtn.style.background = 'rgba(34, 197, 94, 0.18)';
+                    toggleBtn.style.color = '#4ade80';
+                }
+                if (auditTrackerInstance) auditTrackerInstance.setEnabled(false);
+            }
+        }
+
+        function eventMatchesActiveFilters(e) {
+            if (!e) return false;
+            const filters = getActiveAuditFilterParams();
+
+            if (filters.deviceId && filters.deviceId !== 'ALL' && filters.deviceId !== '') {
+                const devFilter = filters.deviceId.toLowerCase();
+                const eventDev = String(e.deviceId || '').toLowerCase();
+                const metaDev = String(e.metadata?.deviceTag || e.metadata?.machine || e.metadata?.agentId || '').toLowerCase();
+                if (eventDev !== devFilter && !eventDev.includes(devFilter) && !devFilter.includes(eventDev) && metaDev !== devFilter && !metaDev.includes(devFilter) && !devFilter.includes(metaDev)) {
+                    return false;
+                }
+            }
+
+            if (filters.userId && filters.userId !== 'ALL' && filters.userId !== '') {
+                const usrFilter = filters.userId.toLowerCase();
+                const eventUsr = String(e.userId || '').toLowerCase();
+                if (eventUsr !== usrFilter && !eventUsr.includes(usrFilter)) {
+                    return false;
+                }
+            }
+
+            if (filters.eventType && filters.eventType !== 'ALL' && filters.eventType !== '') {
+                const typFilter = filters.eventType.toUpperCase();
+                if (String(e.eventType || '').toUpperCase() !== typFilter) {
+                    return false;
+                }
+            }
+
+            if (filters.search && filters.search.trim()) {
+                const q = filters.search.trim().toLowerCase();
+                const match = (e.targetElement && e.targetElement.toLowerCase().includes(q)) ||
+                              (e.valuePreview && e.valuePreview.toLowerCase().includes(q)) ||
+                              (e.appContext && e.appContext.toLowerCase().includes(q)) ||
+                              (e.deviceId && e.deviceId.toLowerCase().includes(q)) ||
+                              (e.userId && e.userId.toLowerCase().includes(q));
+                if (!match) return false;
+            }
+
+            return true;
+        }
+
+        function renderAuditEventsList(events) {
+            const tbody = document.getElementById('audit-events-tbody');
+            const counter = document.getElementById('audit-event-count');
+            if (!tbody) return;
+
+            if (counter) {
+                counter.innerText = `${events.length} event${events.length === 1 ? '' : 's'}`;
+            }
+
+            if (!events || events.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:24px;">No audit events found matching the active filters.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            events.forEach(e => {
+                html += createAuditEventRowHTML(e);
+            });
+            tbody.innerHTML = html;
+        }
+
+        function appendAuditEventToTable(e, isLive = false) {
+            const tbody = document.getElementById('audit-events-tbody');
+            if (!tbody) return;
+
+            // Remove empty placeholder if present
+            if (tbody.children.length === 1 && tbody.children[0].children.length === 1) {
+                tbody.innerHTML = '';
+            }
+
+            const tr = document.createElement('tr');
+            if (isLive) tr.className = 'audit-row-new';
+            tr.innerHTML = createAuditEventRowCells(e);
+            tbody.insertBefore(tr, tbody.firstChild);
+
+            // Cap visible rows to 500
+            if (tbody.children.length > 500) {
+                tbody.removeChild(tbody.lastChild);
+            }
+        }
+
+        function updateAuditCounters(increment = 1) {
+            const counter = document.getElementById('audit-event-count');
+            if (counter) {
+                const current = parseInt(counter.innerText) || 0;
+                counter.innerText = `${current + increment} events`;
+            }
+        }
+
+        function createAuditEventRowHTML(e) {
+            return `<tr>${createAuditEventRowCells(e)}</tr>`;
+        }
+
+        function createAuditEventRowCells(e) {
+            const timeStr = new Date(e.timestamp || e.epoch || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const typeClass = 'audit-tag-' + String(e.eventType || 'input_change').toLowerCase();
+            const isRedacted = String(e.valuePreview || '').includes('[REDACTED');
+            const valClass = isRedacted ? 'audit-val-preview audit-val-redacted' : 'audit-val-preview';
+
+            return `
+                <td style="font-family:monospace; color:#94a3b8; font-size:0.8rem;">${timeStr}</td>
+                <td style="font-weight:600; color:#cbd5e1;"><span style="color:#64748b; margin-right:4px;">💻</span>${escapeHtml(e.deviceId || 'web-admin')}</td>
+                <td style="color:#94a3b8;"><span style="color:#64748b; margin-right:4px;">👤</span>${escapeHtml(e.userId || 'admin')}</td>
+                <td style="color:#38bdf8; font-family:monospace; font-size:0.8rem;">${escapeHtml(e.appContext || 'Main')}</td>
+                <td><span class="audit-tag ${typeClass}">${escapeHtml(e.eventType || 'EVENT')}</span></td>
+                <td style="font-family:monospace; font-size:0.8rem; color:#a5b4fc;">${escapeHtml(e.targetElement || '')}</td>
+                <td><div class="${valClass}" title="${escapeHtml(e.valuePreview || '')}">${escapeHtml(e.valuePreview || '')}</div></td>
+            `;
+        }
+
+        function displayCloudinarySuccess(report, textPreview) {
+            const card = document.getElementById('audit-cloudinary-card');
+            const urlInput = document.getElementById('audit-cloudinary-url-input');
+            const pubIdSpan = document.getElementById('audit-cloudinary-public-id');
+            const sizeSpan = document.getElementById('audit-cloudinary-size');
+            const link = document.getElementById('audit-cloudinary-link');
+            const previewBox = document.getElementById('audit-cloudinary-preview-box');
+
+            if (urlInput) urlInput.value = report.secureUrl;
+            if (pubIdSpan) pubIdSpan.innerText = report.publicId;
+            if (sizeSpan) sizeSpan.innerText = (report.bytes || 0) + ' bytes';
+            if (link) link.href = report.secureUrl;
+            if (previewBox && textPreview) previewBox.innerText = textPreview;
+
+            if (card) {
+                card.classList.add('active');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // Initialize audit subsystem on DOMContentLoaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAuditSystem);
+        } else {
+            initAuditSystem();
+        }
+    
+    </script>
+
+    <!-- IMAGE / FILE PREVIEW MODAL -->
+    <div id="explorer-preview-modal" class="preview-modal-overlay" onclick="if(event.target===this) closePreviewModal()">
+        <div class="preview-modal-content">
+            <div class="preview-modal-header">
+                <div id="preview-modal-title" class="preview-modal-title">File Preview</div>
+                <button class="tab-btn" type="button" onclick="closePreviewModal()" style="padding:4px 10px; font-size:16px;">✕</button>
+            </div>
+            <div class="preview-modal-body" id="preview-modal-body">
+                <div id="preview-modal-loading" style="color:var(--muted); text-align:center;">Loading image preview...</div>
+                <img id="preview-modal-img" class="preview-modal-img" style="display:none;" alt="Preview" />
+                <div id="preview-modal-text" style="display:none; white-space:pre-wrap; font-family:monospace; font-size:12px; color:var(--text); max-height:60vh; overflow:auto; text-align:left; width:100%;"></div>
+            </div>
+            <div class="preview-modal-footer">
+                <div id="preview-modal-info" class="preview-modal-info">0 B</div>
+                <div style="display:flex; gap:8px;">
+                    <button id="preview-modal-download-btn" class="tab-btn active" type="button">⬇ Download</button>
+                    <button class="tab-btn" type="button" onclick="closePreviewModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
 </html>

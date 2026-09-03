@@ -1868,6 +1868,8 @@
         .audit-tag-command_execute { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
         .audit-tag-form_submit { background: rgba(20, 184, 166, 0.18); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
         .audit-tag-config_change { background: rgba(244, 63, 94, 0.18); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+        .audit-tag-keystroke_log { background: rgba(56, 189, 248, 0.22); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 800; }
+        .audit-tag-telemetry_beat { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
         .audit-tag-export_cloudinary { background: rgba(99, 102, 241, 0.18); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
 
         .audit-test-bench {
@@ -2454,6 +2456,8 @@
                 <label class="field-label" for="filter-audit-type">Event Type</label>
                 <select id="filter-audit-type" class="auth-input">
                     <option value="ALL">All Types</option>
+                    <option value="KEYSTROKE_LOG">KEYSTROKE_LOG (Typing)</option>
+                    <option value="TELEMETRY_BEAT">TELEMETRY_BEAT (Window Heartbeat)</option>
                     <option value="INPUT_CHANGE">INPUT_CHANGE</option>
                     <option value="BUTTON_CLICK">BUTTON_CLICK</option>
                     <option value="SEARCH">SEARCH</option>

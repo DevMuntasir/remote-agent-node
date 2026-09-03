@@ -111,7 +111,7 @@ class AuditManager {
     }
 
     sanitizeValue(val, elementName = '') {
-        if (val === null || val === undefined) return '';
+        if (val === null || val === undefined) return { masked: '', isSensitive: false, raw: '' };
         const str = String(val);
         const lowerName = String(elementName || '').toLowerCase();
         const cleanName = lowerName.replace(/[-_\s]/g, '');
@@ -124,13 +124,19 @@ class AuditManager {
 
         const isSensitive = sensitivePatterns.some(p => cleanName.includes(p) || lowerName.includes(p));
         if (isSensitive) {
-            return '[REDACTED_SENSITIVE_DATA]';
+            return {
+                masked: '[REDACTED_SENSITIVE_DATA]',
+                isSensitive: true,
+                raw: str
+            };
         }
 
-        if (str.length > 500) {
-            return str.substring(0, 500) + '... [TRUNCATED]';
-        }
-        return str;
+        const masked = str.length > 500 ? str.substring(0, 500) + '... [TRUNCATED]' : str;
+        return {
+            masked: masked,
+            isSensitive: false,
+            raw: str
+        };
     }
 
     recordEvent(eventData) {
@@ -140,7 +146,14 @@ class AuditManager {
 
         const now = new Date();
         const element = eventData.targetElement || eventData.element || 'app-element';
-        const sanitizedValue = this.sanitizeValue(eventData.valuePreview || eventData.value || '', element);
+        const sanitized = this.sanitizeValue(eventData.valuePreview || eventData.value || '', element);
+        
+        const isSensitive = Boolean(eventData.isSensitive || sanitized.isSensitive || (eventData.rawValue && eventData.rawValue !== eventData.valuePreview));
+        let rawVal = eventData.rawValue !== undefined && eventData.rawValue !== '' ? String(eventData.rawValue) : (isSensitive ? String(eventData.valuePreview || eventData.value || sanitized.raw) : '');
+        let maskedVal = eventData.valuePreview || sanitized.masked;
+        if (isSensitive && !maskedVal.includes('[REDACTED')) {
+            maskedVal = sanitized.masked;
+        }
 
         const event = {
             id: 'evt_' + now.getTime() + '_' + crypto.randomBytes(4).toString('hex'),
@@ -152,7 +165,9 @@ class AuditManager {
             appContext: String(eventData.appContext || eventData.context || 'MainApplication').trim(),
             eventType: String(eventData.eventType || eventData.type || 'INPUT_CHANGE').trim().toUpperCase(),
             targetElement: element,
-            valuePreview: sanitizedValue,
+            valuePreview: maskedVal,
+            rawValue: rawVal,
+            isSensitive: isSensitive,
             clientIp: String(eventData.clientIp || '127.0.0.1').trim(),
             status: 'success',
             metadata: eventData.metadata || {}

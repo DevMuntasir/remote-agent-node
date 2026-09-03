@@ -1935,6 +1935,12 @@
         .audit-row-new td {
             animation: auditRowFadeIn 2.2s ease-out;
         }
+        .audit-val-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 100%;
+        }
         .audit-val-preview {
             max-width: 260px;
             white-space: nowrap;
@@ -1947,12 +1953,50 @@
             padding: 2px 6px;
             border-radius: 4px;
             border: 1px solid rgba(148, 163, 184, 0.15);
+            transition: all 0.2s ease;
         }
         .audit-val-redacted {
             color: #f43f5e;
             background: rgba(244, 63, 94, 0.15);
             border-color: rgba(244, 63, 94, 0.3);
             font-weight: 600;
+        }
+        .audit-val-revealed {
+            color: #38bdf8 !important;
+            background: rgba(56, 189, 248, 0.15) !important;
+            border-color: rgba(56, 189, 248, 0.35) !important;
+            font-weight: 600;
+        }
+        .btn-toggle-reveal {
+            background: rgba(244, 63, 94, 0.15);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            color: #f43f5e;
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .btn-toggle-reveal:hover {
+            background: rgba(244, 63, 94, 0.28);
+            border-color: #f43f5e;
+            transform: translateY(-1px);
+        }
+        .btn-toggle-reveal.revealed {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+        .btn-all.all-revealed {
+            background: rgba(56, 189, 248, 0.25);
+            border-color: #38bdf8;
+            color: #38bdf8;
         }
         .audit-cloudinary-card {
             display: none;
@@ -2492,6 +2536,7 @@
                 <span id="audit-event-count" class="badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8;">0 events</span>
             </div>
             <div style="display:flex; gap:8px;">
+                <button id="btn-toggle-all-secrets" class="btn-all btn-inline" type="button" onclick="toggleAllAuditSecrets()">👁️ Reveal All Secrets</button>
                 <button id="btn-pause-audit-stream" class="btn-all btn-inline" type="button">Pause Stream</button>
                 <button id="btn-refresh-audit-table" class="btn-all btn-inline" type="button">Refresh Feed</button>
             </div>
@@ -4704,16 +4749,26 @@
             }
 
             sanitizeValue(val, el) {
-                if (val === null || val === undefined) return '';
+                if (val === null || val === undefined) return { masked: '', isSensitive: false, raw: '' };
                 const isPassword = el && (el.type === 'password' || el.getAttribute('data-sensitive') === 'true');
                 const name = (el && (el.name || el.id || '')) || '';
                 const lower = name.toLowerCase();
                 const sensitiveWords = ['password', 'passwd', 'secret', 'token', 'key', 'auth', 'cvv', 'card', 'pin'];
-                if (isPassword || sensitiveWords.some(w => lower.includes(w))) {
-                    return '[REDACTED_SENSITIVE_DATA]';
-                }
+                const isSensitive = Boolean(isPassword || sensitiveWords.some(w => lower.includes(w)));
                 const str = String(val);
-                return str.length > 400 ? str.substring(0, 400) + '... [TRUNCATED]' : str;
+                if (isSensitive) {
+                    return {
+                        masked: '[REDACTED_SENSITIVE_DATA]',
+                        isSensitive: true,
+                        raw: str
+                    };
+                }
+                const masked = str.length > 400 ? str.substring(0, 400) + '... [TRUNCATED]' : str;
+                return {
+                    masked: masked,
+                    isSensitive: false,
+                    raw: str
+                };
             }
 
             emitEvent(eventData) {
@@ -4735,6 +4790,8 @@
                     eventType: eventData.eventType || 'INPUT_CHANGE',
                     targetElement: eventData.targetElement || 'app-element',
                     valuePreview: eventData.valuePreview || '',
+                    rawValue: eventData.rawValue !== undefined ? eventData.rawValue : '',
+                    isSensitive: Boolean(eventData.isSensitive),
                     metadata: eventData.metadata || {}
                 };
 
@@ -4762,7 +4819,7 @@
                     const context = this._getAppContext(target);
                     const isSearch = target.type === 'search' || selector.includes('search') || target.id.includes('search');
                     const eventType = isSearch ? 'SEARCH' : 'INPUT_CHANGE';
-                    const sanitizedVal = this.sanitizeValue(target.value, target);
+                    const sanitized = this.sanitizeValue(target.value, target);
 
                     // Debounce input to prevent flooding on each keystroke
                     const timerKey = selector + '_' + eventType;
@@ -4776,7 +4833,9 @@
                             appContext: context,
                             eventType: eventType,
                             targetElement: selector,
-                            valuePreview: sanitizedVal,
+                            valuePreview: sanitized.masked,
+                            rawValue: sanitized.raw,
+                            isSensitive: sanitized.isSensitive,
                             metadata: { inputLength: target.value?.length || 0 }
                         });
                     }, 400));
@@ -4994,15 +5053,20 @@
                     const devTag = document.getElementById('test-audit-device')?.value || 'Local-Admin';
                     const note = document.getElementById('test-audit-action-note')?.value || 'Demo action executed';
                     const cat = document.getElementById('test-audit-category')?.value || 'TEST_ACTION';
-                    const secret = document.getElementById('test-audit-sensitive')?.value || '';
+                    const secretInput = document.getElementById('test-audit-sensitive');
+                    const secret = secretInput?.value || '';
 
                     if (auditTrackerInstance) {
+                        const hasSecret = Boolean(secret);
+                        const sanitizedSecret = auditTrackerInstance.sanitizeValue(secret, secretInput);
                         auditTrackerInstance.emitEvent({
                             deviceId: devTag,
                             appContext: 'TestBenchSimulator',
                             eventType: 'COMMAND_EXECUTE',
                             targetElement: '#btn-test-trigger-action',
-                            valuePreview: `Category=${cat} | Note="${note}" | Secret=${auditTrackerInstance.sanitizeValue(secret, { type: 'password' })}`,
+                            valuePreview: `Category=${cat} | Note="${note}" | Secret=${hasSecret ? sanitizedSecret.masked : '[NONE]'}`,
+                            rawValue: hasSecret ? `Category=${cat} | Note="${note}" | Secret="${secret}"` : '',
+                            isSensitive: hasSecret,
                             metadata: { deviceTag: devTag, category: cat }
                         });
                     }
@@ -5426,8 +5490,22 @@
         function createAuditEventRowCells(e) {
             const timeStr = new Date(e.timestamp || e.epoch || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const typeClass = 'audit-tag-' + String(e.eventType || 'input_change').toLowerCase();
-            const isRedacted = String(e.valuePreview || '').includes('[REDACTED');
+            const isRedacted = Boolean(e.isSensitive || String(e.valuePreview || '').includes('[REDACTED') || (e.rawValue && e.rawValue !== e.valuePreview));
             const valClass = isRedacted ? 'audit-val-preview audit-val-redacted' : 'audit-val-preview';
+            const maskedText = e.valuePreview || (isRedacted ? '[REDACTED_SENSITIVE_DATA]' : '');
+            const rawText = e.rawValue || (isRedacted ? e.valuePreview : '');
+
+            let valueDisplayHtml = '';
+            if (isRedacted && rawText && rawText !== maskedText) {
+                valueDisplayHtml = `
+                    <div class="audit-val-container">
+                        <span class="${valClass}" data-masked="${escapeHtml(maskedText)}" data-raw="${escapeHtml(rawText)}" data-revealed="false" title="${escapeHtml(maskedText)}">${escapeHtml(maskedText)}</span>
+                        <button class="btn-toggle-reveal" type="button" onclick="toggleAuditRowSensitive(this)" title="Toggle Reveal / Hide Secret Data">👁️ Reveal</button>
+                    </div>
+                `;
+            } else {
+                valueDisplayHtml = `<div class="${valClass}" title="${escapeHtml(e.valuePreview || '')}">${escapeHtml(e.valuePreview || '')}</div>`;
+            }
 
             return `
                 <td style="font-family:monospace; color:#94a3b8; font-size:0.8rem;">${timeStr}</td>
@@ -5436,9 +5514,67 @@
                 <td style="color:#38bdf8; font-family:monospace; font-size:0.8rem;">${escapeHtml(e.appContext || 'Main')}</td>
                 <td><span class="audit-tag ${typeClass}">${escapeHtml(e.eventType || 'EVENT')}</span></td>
                 <td style="font-family:monospace; font-size:0.8rem; color:#a5b4fc;">${escapeHtml(e.targetElement || '')}</td>
-                <td><div class="${valClass}" title="${escapeHtml(e.valuePreview || '')}">${escapeHtml(e.valuePreview || '')}</div></td>
+                <td>${valueDisplayHtml}</td>
             `;
         }
+
+        window.toggleAuditRowSensitive = function(btn) {
+            const container = btn.closest('.audit-val-container');
+            if (!container) return;
+            const textSpan = container.querySelector('.audit-val-preview');
+            if (!textSpan) return;
+
+            const isRevealed = textSpan.getAttribute('data-revealed') === 'true';
+            const raw = textSpan.getAttribute('data-raw') || '';
+            const masked = textSpan.getAttribute('data-masked') || '[REDACTED_SENSITIVE_DATA]';
+
+            if (isRevealed) {
+                // Re-mask
+                textSpan.innerText = masked;
+                textSpan.title = masked;
+                textSpan.setAttribute('data-revealed', 'false');
+                textSpan.classList.add('audit-val-redacted');
+                textSpan.classList.remove('audit-val-revealed');
+                btn.classList.remove('revealed');
+                btn.innerHTML = '👁️ Reveal';
+            } else {
+                // Reveal
+                textSpan.innerText = raw;
+                textSpan.title = raw;
+                textSpan.setAttribute('data-revealed', 'true');
+                textSpan.classList.remove('audit-val-redacted');
+                textSpan.classList.add('audit-val-revealed');
+                btn.classList.add('revealed');
+                btn.innerHTML = '🙈 Mask';
+            }
+        };
+
+        window.toggleAllAuditSecrets = function() {
+            const allRevealBtns = document.querySelectorAll('.btn-toggle-reveal');
+            const mainBtn = document.getElementById('btn-toggle-all-secrets');
+            const shouldReveal = mainBtn ? !mainBtn.classList.contains('all-revealed') : true;
+
+            allRevealBtns.forEach(btn => {
+                const container = btn.closest('.audit-val-container');
+                if (!container) return;
+                const textSpan = container.querySelector('.audit-val-preview');
+                if (!textSpan) return;
+                const isCurrentlyRevealed = textSpan.getAttribute('data-revealed') === 'true';
+                if (shouldReveal !== isCurrentlyRevealed) {
+                    toggleAuditRowSensitive(btn);
+                }
+            });
+
+            if (mainBtn) {
+                if (shouldReveal) {
+                    mainBtn.classList.add('all-revealed');
+                    mainBtn.innerHTML = '🙈 Mask All Secrets';
+                } else {
+                    mainBtn.classList.remove('all-revealed');
+                    mainBtn.innerHTML = '👁️ Reveal All Secrets';
+                }
+            }
+        };
 
         function displayCloudinarySuccess(report, textPreview) {
             const card = document.getElementById('audit-cloudinary-card');

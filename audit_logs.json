@@ -25,6 +25,8 @@
     "eventType": "INPUT_CHANGE",
     "targetElement": "#admin-api-key",
     "valuePreview": "[REDACTED_SENSITIVE_DATA]",
+    "rawValue": "sk_live_98a72b14c3e809f1a23",
+    "isSensitive": true,
     "clientIp": "127.0.0.1",
     "status": "success",
     "metadata": {}
@@ -108,6 +110,8 @@
     "eventType": "INPUT_CHANGE",
     "targetElement": "#admin-api-key",
     "valuePreview": "[REDACTED_SENSITIVE_DATA]",
+    "rawValue": "sk_live_98a72b14c3e809f1a23",
+    "isSensitive": true,
     "clientIp": "127.0.0.1",
     "status": "success",
     "metadata": {}

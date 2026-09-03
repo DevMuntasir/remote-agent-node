@@ -954,7 +954,8 @@
                 "topbar topbar"
                 "sidebar explorer"
                 "sidebar apps"
-                "sidebar utility";
+                "sidebar utility"
+                "audit audit";
             gap: 20px;
         }
 
@@ -1074,6 +1075,12 @@
 
         #card-security {
             grid-area: utility;
+        }
+
+        #card-audit {
+            grid-area: audit;
+            grid-column: 1 / -1;
+            width: 100%;
         }
 
         .mgmt-card {
@@ -1707,7 +1714,8 @@
                     "sidebar"
                     "explorer"
                     "apps"
-                    "utility";
+                    "utility"
+                    "audit";
                 gap: 14px;
             }
 
@@ -2360,8 +2368,7 @@
         </div>
 
         <!-- IN-APP USER ACTIVITY AUDIT CARD -->
-    </div>
-    <div class="card" id="card-audit">
+        <div class="card" id="card-audit">
         <div class="header-row" style="margin-bottom:20px;">
             <div class="section-heading">
                 <span class="section-icon" aria-hidden="true" style="color:#38bdf8;">◉</span>
@@ -2546,6 +2553,7 @@
 
             <div id="audit-cloudinary-preview-box" style="display:none; margin-top:12px; background:rgba(0,0,0,0.6); border:1px solid rgba(148,163,184,0.2); border-radius:6px; padding:12px; max-height:220px; overflow-y:auto; font-family:monospace; font-size:0.78rem; white-space:pre-wrap; color:#94a3b8;"></div>
         </div>
+    </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

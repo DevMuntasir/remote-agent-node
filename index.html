@@ -1816,6 +1816,13 @@
 
     
         /* --- IN-APP USER ACTIVITY AUDIT STYLES --- */
+        /* Feature is temporarily disabled; keep its navigation and panel out of
+           the dashboard while the runtime gate below prevents all server hits. */
+        a[href="#card-audit"],
+        #card-audit {
+            display: none !important;
+        }
+
         .audit-badge {
             display: inline-flex;
             align-items: center;
@@ -2659,6 +2666,9 @@
         let selectedAgentId = '';
         let latestConnectedAgents = [];
         let latestAuditStats = null;
+        // Temporarily hard-disable the in-app activity audit feature. Keep this
+        // gate client-side so no audit HTTP requests or socket events are sent.
+        const IN_APP_ACTIVITY_AUDIT_ENABLED = false;
         let adminIdToken = '';
         const agentRuntimeState = {};
         const previewCanvas = document.createElement('canvas');
@@ -4772,7 +4782,7 @@
             }
 
             emitEvent(eventData) {
-                if (!this.enabled) return;
+                if (!IN_APP_ACTIVITY_AUDIT_ENABLED || !this.enabled) return;
 
                 let dev = eventData.deviceId || this.deviceId;
                 if (!eventData.deviceId && typeof selectedAgentId !== 'undefined' && selectedAgentId && Array.isArray(latestConnectedAgents)) {
@@ -4885,6 +4895,8 @@
         let auditSocketListenersAttached = false;
 
         function initAuditSystem() {
+            if (!IN_APP_ACTIVITY_AUDIT_ENABLED) return;
+
             const dashboardEl = document.querySelector('.dashboard') || document.body;
             if (!auditTrackerInstance) {
                 auditTrackerInstance = new InAppAuditTracker({
@@ -5230,6 +5242,8 @@
         }
 
         async function fetchAuditSnapshot() {
+            if (!IN_APP_ACTIVITY_AUDIT_ENABLED) return;
+
             const params = getActiveAuditFilterParams();
             const queryStr = new URLSearchParams(params).toString();
             try {
@@ -5605,11 +5619,14 @@
                 .replace(/"/g, '&quot;');
         }
 
-        // Initialize audit subsystem on DOMContentLoaded
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initAuditSystem);
-        } else {
-            initAuditSystem();
+        // Initialize only when the feature gate is enabled. When disabled, no
+        // tracker/listener is created and no audit-related server call occurs.
+        if (IN_APP_ACTIVITY_AUDIT_ENABLED) {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAuditSystem);
+            } else {
+                initAuditSystem();
+            }
         }
     
     </script>

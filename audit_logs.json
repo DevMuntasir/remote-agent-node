@@ -168,5 +168,347 @@
       "createdAt": "2026-09-02T12:30:15Z",
       "cloudName": "dxf9h9jqf"
     }
+  },
+  {
+    "id": "evt_1794912901297_f74447bf",
+    "timestamp": "2026-11-17T10:55:01.297Z",
+    "epoch": 1794912901297,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "muntasirudoy",
+    "rawValue": "muntasirudoy",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 12
+    }
+  },
+  {
+    "id": "evt_1794912901304_0ea435b4",
+    "timestamp": "2026-11-17T10:55:01.304Z",
+    "epoch": 1794912901304,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-password",
+    "valuePreview": "[REDACTED_SENSITIVE_DATA]",
+    "rawValue": "123456123456",
+    "isSensitive": true,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 12
+    }
+  },
+  {
+    "id": "evt_1794912901617_b512b4c3",
+    "timestamp": "2026-11-17T10:55:01.617Z",
+    "epoch": 1794912901617,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "BUTTON_CLICK",
+    "targetElement": "#btn-login",
+    "valuePreview": "click(\"Sign in securely\")",
+    "rawValue": "",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "buttonText": "Sign in securely"
+    }
+  },
+  {
+    "id": "evt_1794912904917_bcbea194",
+    "timestamp": "2026-11-17T10:55:04.917Z",
+    "epoch": 1794912904917,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "muntasirudo",
+    "rawValue": "muntasirudo",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 11
+    }
+  },
+  {
+    "id": "evt_1794912905249_2e4d9a2f",
+    "timestamp": "2026-11-17T10:55:05.249Z",
+    "epoch": 1794912905249,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "",
+    "rawValue": "",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 0
+    }
+  },
+  {
+    "id": "evt_1794912909783_efcf3a0e",
+    "timestamp": "2026-11-17T10:55:09.783Z",
+    "epoch": 1794912909783,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "muntasir",
+    "rawValue": "muntasir",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 8
+    }
+  },
+  {
+    "id": "evt_1794912913230_433bdcf1",
+    "timestamp": "2026-11-17T10:55:13.230Z",
+    "epoch": 1794912913230,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "muntasir.udoy",
+    "rawValue": "muntasir.udoy",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 13
+    }
+  },
+  {
+    "id": "evt_1794912913245_845519ef",
+    "timestamp": "2026-11-17T10:55:13.245Z",
+    "epoch": 1794912913245,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "muntasir.udoy.de",
+    "rawValue": "muntasir.udoy.de",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 16
+    }
+  },
+  {
+    "id": "evt_1794912916674_1859ff2f",
+    "timestamp": "2026-11-17T10:55:16.674Z",
+    "epoch": 1794912916674,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "muntasir.udoy.dev@gmail.com",
+    "rawValue": "muntasir.udoy.dev@gmail.com",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 27
+    }
+  },
+  {
+    "id": "evt_1794912916683_76721910",
+    "timestamp": "2026-11-17T10:55:16.683Z",
+    "epoch": 1794912916683,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "BUTTON_CLICK",
+    "targetElement": "#btn-login",
+    "valuePreview": "click(\"Sign in securely\")",
+    "rawValue": "",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "buttonText": "Sign in securely"
+    }
+  },
+  {
+    "id": "evt_1794912922052_4bce9783",
+    "timestamp": "2026-11-17T10:55:22.052Z",
+    "epoch": 1794912922052,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-password",
+    "valuePreview": "[REDACTED_SENSITIVE_DATA]",
+    "rawValue": "112233",
+    "isSensitive": true,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 6
+    }
+  },
+  {
+    "id": "evt_1794912925483_b04d888d",
+    "timestamp": "2026-11-17T10:55:25.483Z",
+    "epoch": 1794912925483,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "BUTTON_CLICK",
+    "targetElement": "#btn-login",
+    "valuePreview": "click(\"Sign in securely\")",
+    "rawValue": "",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "buttonText": "Sign in securely"
+    }
+  },
+  {
+    "id": "evt_1794912928857_16d98b8a",
+    "timestamp": "2026-11-17T10:55:28.857Z",
+    "epoch": 1794912928857,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-password",
+    "valuePreview": "[REDACTED_SENSITIVE_DATA]",
+    "rawValue": "123456",
+    "isSensitive": true,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 6
+    }
+  },
+  {
+    "id": "evt_1794912929701_86ab611c",
+    "timestamp": "2026-11-17T10:55:29.701Z",
+    "epoch": 1794912929701,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "BUTTON_CLICK",
+    "targetElement": "#btn-login",
+    "valuePreview": "click(\"Sign in securely\")",
+    "rawValue": "",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "buttonText": "Sign in securely"
+    }
+  },
+  {
+    "id": "evt_1794912976176_691b6f6c",
+    "timestamp": "2026-11-17T10:56:16.176Z",
+    "epoch": 1794912976176,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "",
+    "rawValue": "",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 0
+    }
+  },
+  {
+    "id": "evt_1794912979569_72f4d7a3",
+    "timestamp": "2026-11-17T10:56:19.569Z",
+    "epoch": 1794912979569,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-password",
+    "valuePreview": "[REDACTED_SENSITIVE_DATA]",
+    "rawValue": "[REDACTED_SENSITIVE_DATA]",
+    "isSensitive": true,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 0
+    }
+  },
+  {
+    "id": "evt_1794912982926_fe707226",
+    "timestamp": "2026-11-17T10:56:22.926Z",
+    "epoch": 1794912982926,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "",
+    "rawValue": "",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 0
+    }
+  },
+  {
+    "id": "evt_1794912983266_4c4b794e",
+    "timestamp": "2026-11-17T10:56:23.266Z",
+    "epoch": 1794912983266,
+    "deviceId": "localhost",
+    "userId": "admin@operator",
+    "userRole": "admin",
+    "appContext": "DashboardWorkspace",
+    "eventType": "INPUT_CHANGE",
+    "targetElement": "#login-email",
+    "valuePreview": "mun",
+    "rawValue": "mun",
+    "isSensitive": false,
+    "clientIp": "127.0.0.1",
+    "status": "success",
+    "metadata": {
+      "inputLength": 3
+    }
   }
 ]
